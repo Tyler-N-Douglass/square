@@ -29,7 +29,7 @@
 import type { Vec3 } from '../types';
 import { mat3FromCols, mat3Inverse, mat3MulVec } from './mat';
 import { vDot, vLen, vSub } from './vec';
-import type { Intrinsics, Px } from './angleSolver';
+import { validateQuadGeometry, type Intrinsics, type Px } from './angleSolver';
 
 /** Known sheet aspect ratios (long edge / short edge). */
 export const SHEET_ASPECT = {
@@ -130,11 +130,8 @@ export function calibrateFromSheet(
   if (!(imageW > 0) || !(imageH > 0)) {
     return { ok: false, reason: 'POOR_GEOMETRY', message: 'image dimensions must be positive' };
   }
-  for (const p of quadPx) {
-    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
-      return { ok: false, reason: 'POOR_GEOMETRY', message: 'sheet corners have non-finite coordinates' };
-    }
-  }
+  const shape = validateQuadGeometry(quadPx);
+  if (!shape.ok) return { ok: false, reason: 'POOR_GEOMETRY', message: shape.message };
   const cx = imageW / 2;
   const cy = imageH / 2;
   const fGuess = defaultIntrinsics(imageW, imageH).fPx;
