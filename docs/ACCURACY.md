@@ -13,8 +13,8 @@ Status legend: **verified-synthetic** (green test against synthetic ground truth
 
 | Claim | State | Basis |
 |---|---|---|
-| Zero-crossing estimator error ≤ 0.25″ on the seed trace (truth 4.00″/20.00″) | verified-synthetic | `tests/unit/zero-crossing.test.ts` |
-| Amplitude estimator misses by > 0.75″ (why the app doesn't use it) | verified-synthetic | `tests/unit/zero-crossing.test.ts` |
+| Zero-crossing estimator error ≤ 0.25″ on the seed trace — measured 4.003″/20.016″ vs truth 4.00″/20.00″ | verified-synthetic | `tests/unit/zero-crossing.test.ts` |
+| Amplitude estimator misses by > 0.75″ — measured 3.225″/18.975″, outside the stud half-width (why the app doesn't use it) | verified-synthetic | `tests/unit/zero-crossing.test.ts` |
 | 16″/24″ on-center lattice recovery, phase-locked, ≥2 peaks within ±0.75″ | verified-synthetic | `tests/fixtures.verify.test.ts` |
 | Detector precision/recall vs. SNR | verified-synthetic | `docs/accuracy-dsp.md` (published curve) |
 | Real-wall position error | — | pending `FIELD-TEST.md` §2 |
@@ -38,8 +38,8 @@ object; work over metal studs, dense plaster lath, or near live conduit, ductwor
 
 | Claim | State | Basis |
 |---|---|---|
-| Solver recovery ≤ 0.3° on noise-free synthetic projections, θ ∈ [70°,110°], 10 poses | verified-synthetic | `tests/unit/angle-solver-groundtruth.test.ts` |
-| Monte-Carlo ± band contains truth ~90% of the time at σ = 2 px | verified-synthetic | montecarlo calibration test |
+| Solver recovery ≤ 0.3° on noise-free synthetic projections — measured worst case ~1×10⁻¹³°, θ ∈ [70°,110°], 10 poses | verified-synthetic | `tests/unit/angle-solver-groundtruth.test.ts` |
+| Monte-Carlo ± band contains truth ~90% of the time at σ = 2 px — measured 89.0% over 200 seeded trials | verified-synthetic | `tests/unit/geometry-montecarlo.test.ts` |
 | Uncalibrated lens: expect ±1.5–3° (displayed as such) | unverified until field | `FIELD-TEST.md` §4 |
 | Calibrated lens: expect ±0.3–0.8° | unverified until field | `FIELD-TEST.md` §4 |
 | Degenerate geometry refuses rather than reports | verified-synthetic | groundtruth test, refusal case |
@@ -65,3 +65,19 @@ object; work over metal studs, dense plaster lath, or near live conduit, ductwor
 |---|---|---|
 | Ellipsoid fit recovers synthetic hard/soft iron within tolerance | verified-synthetic | dsp calibration tests |
 | Case-magnet detection at hard-iron offset > 40 µT | verified-synthetic | fixture `magsafe-attached` |
+
+## Scope notes — what this build has NOT machine-verified (stated, not hidden)
+
+- **Real-wall performance.** Every SCAN/LEVEL/CORNER/BEVEL figure above is synthetic ground
+  truth. The `docs/FIELD-TEST.md` protocol produces the field-measured replacements; until it
+  runs, the app's copy claims only what the calibration state supports.
+- **Playwright e2e / Lighthouse / axe.** SPEC §10.3's browser-automation matrix (per-tier mocks,
+  offline reload, install, a11y scans, visual regression) was not executed in this build
+  environment. Accessibility was built by construction (live regions, focus management, target
+  sizes, reduced motion — DOM-tested where testable) but not axe-verified; Lighthouse budgets
+  were enforced by measurement of the artifact (233 KB gzipped total) rather than by a
+  Lighthouse run. These remain open items for a follow-up session with device access.
+- **First run** ships in the lean §7B.2 form (guided SCAN entry + remembered skip; no grid
+  lockout) — ADR-013.5.
+- **Battery/thermal behavior** on sustained scans: unsubscribe-on-hide is implemented and
+  tested at the source level; real-device battery profiling has not run.
