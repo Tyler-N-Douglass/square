@@ -6,7 +6,8 @@
  * sheet; two-step delete-all that spares calibration.
  *
  * Honesty rules in force here:
- *  - values render through A7's measuredEl — unit and ±/confidence always
+ *  - values render through recordedEl — unit and ±/confidence always, but no
+ *    orange: a saved reading is history, not a live signal (ADR-013)
  *    attached, never re-formatted into bare numbers (SPEC §15.1, §15.5);
  *  - the in-memory fallback is VISIBLE: a one-line notice says storage is
  *    session-only (SPEC §15.4);
@@ -28,7 +29,7 @@ import {
   UNDO_GRACE_MS,
   type SavedEntry,
 } from '../../app/logStore';
-import { measuredEl } from '../../ui/components/number';
+import { recordedEl } from '../../ui/components/number';
 import { bottomBar } from '../../ui/components/toolbar';
 import { coachMark } from '../../ui/components/coach';
 import { FadingStore, type FadeLevel } from '../../guidance/fading';
@@ -247,7 +248,7 @@ export function mount(el: HTMLElement, _ctx: AppContext): () => void {
     // unit and ±/confidence can never detach from the number.
     const value = document.createElement('span');
     value.className = 'log-entry__value';
-    value.append(measuredEl(m, { decimals: 2 }));
+    value.append(recordedEl(m, { decimals: 2 }));
     head.append(value);
 
     const photoId = m.media?.photoId;

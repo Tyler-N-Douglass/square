@@ -8,6 +8,13 @@
  * know. The guidance suite asserts the §7B.8 list is complete and that the
  * voice rules hold.
  */
+import { GLOSSARY_ADDITIONS as SCAN_TERMS } from '../tools/scan/guide';
+import { GLOSSARY_ADDITIONS as LEVEL_TERMS } from '../tools/level/guide';
+import { GLOSSARY_ADDITIONS as LOG_TERMS } from '../tools/log/guide';
+import { GLOSSARY_ADDITIONS as LAYOUT_TERMS } from '../tools/layout/guide';
+import { GLOSSARY_ADDITIONS as BEVEL_TERMS } from '../tools/bevel/guide';
+import { GLOSSARY_ADDITIONS as CORNER_TERMS } from '../tools/corner/guide';
+import { GLOSSARY_ADDITIONS as CALIBRATE_TERMS } from '../tools/calibrate/guide';
 
 export interface GlossaryEntry {
   term: string;
@@ -19,7 +26,12 @@ export interface GlossaryEntry {
   alt?: string[];
 }
 
+// Gate 2 lead merge: tool-authored additions, spread before the base set so
+// the base entries stay canonical on any accidental slug collision (the
+// owners collision-tested their additions; this is belt and braces).
 export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> = {
+  ...SCAN_TERMS, ...LEVEL_TERMS, ...LOG_TERMS, ...LAYOUT_TERMS,
+  ...BEVEL_TERMS, ...CORNER_TERMS, ...CALIBRATE_TERMS,
   /* ---- The §7B.8 list ---- */
   'on-center': {
     term: 'on center',

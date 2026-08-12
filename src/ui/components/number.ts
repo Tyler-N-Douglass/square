@@ -169,6 +169,25 @@ export function measuredEl(m: Measurement, opts: MeasuredOpts = {}): MeasuredNum
   }) as MeasuredNumberEl;
 }
 
+/* ---------- recorded ---------- */
+
+/**
+ * A SAVED measurement — LOG entries, history views. Same mandatory unit and
+ * ±/confidence as measuredEl, but it does NOT wear orange: the orange rule
+ * (SPEC §7.1) marks a value a sensor is producing right now, and a recorded
+ * reading is history, not a live signal (ADR-013). Static — no update().
+ */
+export function recordedEl(m: Measurement, opts: MeasuredOpts = {}): HTMLElement {
+  const live = measuredEl(m, opts);
+  live.classList.add('num--recorded');
+  const reading = live.querySelector('.num__reading');
+  if (reading) {
+    reading.classList.remove('measured');
+    reading.classList.add('derived');
+  }
+  return live;
+}
+
 /* ---------- derived ---------- */
 
 export function derivedEl(

@@ -176,3 +176,38 @@ projection math the ground-truth suite uses). Every demo surfaces its synthetic 
 
 **Consequences.** No demo bypasses the real pipeline anywhere; the strict fixture-unification
 test applies to SCAN, where the corpus exists.
+
+## ADR-013 — Gate 2 integration rulings
+
+**Context.** Five Phase 2 agents landed with flagged judgment calls needing a single ruling.
+
+**Decisions.**
+1. **Saved values do not wear orange.** LOG renders history through `recordedEl` — same
+   mandatory unit + ±/confidence as `measuredEl`, ink instead of orange. Orange means "a sensor
+   is producing this now" (§7.1); a recorded reading is history. (Raised by A8.)
+2. **Uncalibrated FIELD caps at LIKELY with a standing UNCALIBRATED banner** rather than blanket
+   UNRELIABLE: detrending removes hard-iron DC and the accessory guard catches gross offsets, so
+   total refusal would overclaim the problem. STRONG still requires calibration. Replayed
+   fixtures are exempt — they replay under their recorded conditions. (Raised by A6.)
+3. **`CalibrationProfile.levelBias` is in degrees.** Set by A5, honored by CALIBRATE, pinned by
+   test on both sides.
+4. **Demo registry split**: only fixture-backed demos live in `DEMO_SPECS` (where the corpus
+   test enforces the fixture link); synthetic-stream and worked-example demos (ADR-012) stay in
+   their tools' own registries with the same mandatory synthetic labeling. A6's three
+   fixture-backed additions merged into `DEMO_SPECS`; glossary additions from all seven tools
+   merged into `GLOSSARY` (spread-first, base canonical).
+5. **First run is the lean form of §7B.2**: a home panel offering the SCAN guided run (which
+   itself sequences permissions → sweep → first detection) plus an always-working, remembered
+   "Skip setup". The full-grid lockout is deliberately NOT implemented: "never trap anyone"
+   outranks it, and a lockout tuned blind (no real device in this environment) risks exactly
+   that. Recorded as a known §7B.2 partial in ACCURACY/HONESTY notes.
+6. **Guidance fading storage**: LOG self-wires the warmed IDB adapter; other tools use the
+   localStorage default. Both converge through the adapter's adoption path (kv wins). Accepted;
+   unifying in main.ts is a later cleanup, not a correctness issue — lost guidance state re-shows
+   guidance, the safe direction.
+7. **A3b implementation notes accepted**: per-routine calibration ages come from CALIBRATE's
+   outcome store until `CalibrationProfile` grows per-part timestamps; annotated corner photos
+   live in a tool-local IDB store pending a media seam in logStore.
+
+**Consequences.** All rulings encoded in code or tests where they bite; no open contract drift
+between the five Phase 2 deliveries.

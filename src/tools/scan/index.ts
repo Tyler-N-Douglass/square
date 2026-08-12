@@ -66,7 +66,7 @@ import {
 import { LivePipeline, createSyncAnalyzer, type AnalysisMeta, type DetailedAnalyzer } from './pipeline';
 import { createWorkerAnalyzer } from './workerClient';
 import { buildManualPanel } from './manualMode';
-import { DEMOS, SCAN_GUIDE, SCAN_MANUAL_GUIDE } from './guide';
+import { SCAN_GUIDE, SCAN_MANUAL_GUIDE } from './guide';
 
 /* ------------------------------------------------------------------------ */
 /* Injectable deps                                                           */
@@ -1066,8 +1066,9 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
     spec: DemoSpec;
   }
   const demoEntries: DemoEntry[] = [
+    // DEMO_SPECS now carries the fixture-backed additions too (Gate 2 merge);
+    // demosForTool is the single source, so nothing double-lists.
     ...demosForTool('scan').map(({ id, spec }) => ({ key: id, spec })),
-    ...DEMOS.map((spec) => ({ key: spec.fixtureId, spec })),
   ];
 
   function stopDemo(): void {

@@ -303,3 +303,23 @@ button.num__pm { cursor: pointer; min-height: var(--tap); min-width: var(--tap);
   .bottombar { padding-top: var(--grid); }
   .num--primary .num__reading { font-size: max(var(--hud-min), 3.5rem); }
 }
+
+/* ---------- first run (§7B.2, ADR-013) ---------- */
+
+.firstrun {
+  border: var(--rule-w-strong) solid var(--type);
+  background: var(--surface);
+  padding: calc(var(--grid) * 2);
+  margin-bottom: calc(var(--grid) * 3);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--grid) * 1.5);
+  align-items: flex-start;
+}
+.firstrun__head { margin: 0; font-size: 1.5rem; }
+.firstrun__line { margin: 0; font-family: var(--font-prose); font-size: 0.9375rem; line-height: 1.5; max-width: 60ch; }
+.firstrun__go { text-decoration: none; display: inline-flex; align-items: center; }
+.firstrun__skip { color: var(--type-2); font-size: 0.875rem; }
+
+/* recorded values (LOG history): same layout as measured, never orange */
+.num--recorded .num__reading { color: var(--type); }

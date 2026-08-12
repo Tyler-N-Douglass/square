@@ -158,11 +158,21 @@ describe('enteredEl', () => {
 });
 
 describe('module surface', () => {
-  it('exports exactly the three provenance factories — no bare-number path', () => {
+  it('exports exactly the four provenance factories — no bare-number path', () => {
+    // recordedEl joined at Gate 2 (ADR-013): saved history, same mandatory
+    // unit + ±/confidence, never orange. Still no path to a bare number.
     const fns = Object.entries(numbers)
       .filter(([, v]) => typeof v === 'function')
       .map(([k]) => k)
       .sort();
-    expect(fns).toEqual(['derivedEl', 'enteredEl', 'measuredEl']);
+    expect(fns).toEqual(['derivedEl', 'enteredEl', 'measuredEl', 'recordedEl']);
+  });
+
+  it('recordedEl keeps unit and ±/confidence but never wears orange (ADR-013)', () => {
+    const el = numbers.recordedEl(meas());
+    expect(el.className).toContain('num--recorded');
+    expect(el.querySelector('.measured')).toBeNull();
+    expect(el.textContent).toContain('°');
+    expect(el.textContent).toMatch(/±|STRONG|LIKELY|POSSIBLE|NOISE|UNRELIABLE/);
   });
 });

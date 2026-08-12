@@ -81,9 +81,9 @@ describe('GLOSSARY_ADDITIONS for the lead to merge', () => {
     }
   });
 
-  it('collides with nothing already in the glossary', () => {
-    for (const slug of Object.keys(GLOSSARY_ADDITIONS)) {
-      expect(slug in GLOSSARY, slug).toBe(false);
+  it('is merged into the glossary verbatim (Gate 2) — present and unshadowed', () => {
+    for (const [slug, entry] of Object.entries(GLOSSARY_ADDITIONS)) {
+      expect(GLOSSARY[slug], slug).toEqual(entry);
     }
   });
 });

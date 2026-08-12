@@ -15,6 +15,7 @@ import type { MagSample } from '../sensors/types';
 import type { SensorTrace, TraceExpected } from '../types';
 import { ReplayMagSource } from '../sensors/replay';
 import { loadFixture } from './fixtures';
+import { DEMOS as SCAN_EXTRA_DEMOS } from '../tools/scan/guide';
 
 export interface DemoNarrationLine {
   /** Trace time (seconds) at which the line appears. */
@@ -131,6 +132,11 @@ export const DEMO_SPECS: Readonly<Record<string, DemoSpec>> = {
       { atT: 5.0, text: 'The app stops and says why: MAGNETIC ACCESSORY DETECTED. Take the case off, recalibrate, and the wall comes back.' },
     ],
   },
+  // Gate 2 lead merge: A6's fixture-backed additions, keyed by fixture id
+  // (see src/tools/scan/guide.ts SCAN_EXTRA_DEMOS for authorship). Only
+  // fixture-backed demos live here — synthetic-stream and worked-example
+  // demos stay in their tools' own registries per ADR-012.
+  ...Object.fromEntries(SCAN_EXTRA_DEMOS.map((spec) => [spec.fixtureId, spec])),
 };
 
 /** Demos for one tool, in declaration order. */

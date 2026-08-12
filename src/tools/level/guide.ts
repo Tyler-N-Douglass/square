@@ -191,7 +191,7 @@ export const GLOSSARY_ADDITIONS: Readonly<Record<string, GlossaryEntry>> = {
   },
   deadband: {
     term: 'deadband',
-    def: 'The tolerance band around level where the tone goes silent and LEVEL locks — 0.2° here.',
+    def: 'The tolerance band around level where the tone goes silent and LEVEL locks — two tenths of a degree here.',
     whyItMatters: 'Inside the band the surface is level at the claim the calibration state supports.',
   },
 };

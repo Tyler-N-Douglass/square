@@ -16,6 +16,34 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
   tag.textContent = 'IS IT SQUARE?';
   wrap.append(tag);
 
+  // First run — §7B.2, lean form (ADR-013): prove it on a real wall via the
+  // SCAN guided run. Skip always works and is remembered; no lockout.
+  let firstRunDone = true;
+  try { firstRunDone = localStorage.getItem('square.firstrun.done') === '1'; } catch { /* private mode */ }
+  if (!firstRunDone) {
+    const markDone = (): void => { try { localStorage.setItem('square.firstrun.done', '1'); } catch { /* ignore */ } };
+    const panel = document.createElement('section');
+    panel.className = 'firstrun';
+    const head = document.createElement('h2');
+    head.className = 'display firstrun__head';
+    head.textContent = 'FIRST RUN: PROVE IT';
+    const line = document.createElement('p');
+    line.className = 'firstrun__line';
+    line.textContent = 'Ninety seconds to one real detection on your own wall. The guided run drives SCAN with live sensor data — permissions, the case-magnet check, calibration, first sweep.';
+    const go = document.createElement('a');
+    go.href = '#/scan';
+    go.className = 'btn btn--live firstrun__go';
+    go.textContent = 'START ON A WALL';
+    go.addEventListener('click', markDone);
+    const skip = document.createElement('a');
+    skip.href = '#/';
+    skip.className = 'firstrun__skip';
+    skip.textContent = 'Skip setup';
+    skip.addEventListener('click', (e) => { e.preventDefault(); markDone(); panel.remove(); });
+    panel.append(head, line, go, skip);
+    wrap.append(panel);
+  }
+
   const grid = document.createElement('nav');
   grid.className = 'toolgrid';
   grid.setAttribute('aria-label', 'Tools');

@@ -121,9 +121,9 @@ describe('DEMOS — DemoSpec-shaped registry for the lead to merge', () => {
 });
 
 describe('GLOSSARY_ADDITIONS (merged by the lead, §7B.8)', () => {
-  it('entries are complete, voice-clean, and collision-free', () => {
+  it('entries are complete, voice-clean, and merged unshadowed (Gate 2)', () => {
     for (const [slug, entry] of Object.entries(GLOSSARY_ADDITIONS)) {
-      expect(GLOSSARY[slug], slug).toBeUndefined();
+      expect(GLOSSARY[slug], slug).toEqual(entry);
       expect(entry.term.length).toBeGreaterThan(0);
       expect(entry.def.length).toBeGreaterThan(0);
       expect(entry.whyItMatters.length).toBeGreaterThan(0);

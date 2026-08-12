@@ -110,7 +110,8 @@ Never proceed past a red gate. A10 (me, wearing that hat, with the suite as arbi
 - [x] G1 — math (508/508 green; frozen tests pass unedited; miter canonicals exact;
       angle solver worst error ~1e-13°; zero-crossing 4.003″/20.016″ vs amplitude
       3.225″/18.975″ on the seed; 7-fixture corpus verified; ADR-010/011/012 recorded)
-- [ ] G2 — tools + guidance
+- [x] G2 — tools + guidance (998/998 across 77 files; all 7 tools with guided runs +
+      DEMOs; registry merges done; ADR-013 rulings recorded; whole app 233 KB gzipped)
 - [ ] G3 — honesty
 - [ ] G4 — deployed
 

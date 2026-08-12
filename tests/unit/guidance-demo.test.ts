@@ -130,9 +130,14 @@ describe('DEMO_SPECS — the shipped demos', () => {
     });
   }
 
-  it('demosForTool filters by tool and keeps declaration order', () => {
+  it('demosForTool filters by tool and keeps declaration order (incl. Gate 2 merged additions)', () => {
     const scan = demosForTool('scan').map((d) => d.id);
-    expect(scan).toEqual(['scan-first-wall', 'scan-hot-wall', 'scan-magsafe']);
+    expect(scan).toEqual([
+      'scan-first-wall', 'scan-hot-wall', 'scan-magsafe',
+      'sweep-too-fast', 'plaster-lath-dense', 'tierB-heading-proxy',
+    ]);
+    // LEVEL's demos are synthetic-stream driven and live in the tool's own
+    // registry per ADR-012/ADR-013 — deliberately absent here.
     expect(demosForTool('level')).toEqual([]);
   });
 });

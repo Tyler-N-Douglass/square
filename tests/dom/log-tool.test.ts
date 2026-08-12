@@ -91,11 +91,12 @@ afterEach(() => {
 });
 
 describe('entries render with unit and ±/confidence — never a bare number (SPEC §15.1)', () => {
-  it('shows value, unit, and ± through the measured component', async () => {
+  it('shows value, unit, and ± through the recorded component (ADR-013: history, not orange)', async () => {
     await saveMeasurement(meas({ id: 'a' }), { note: 'behind the couch', project: 'living room' });
     await mountLog();
     const entry = q<HTMLElement>('.log-entry');
-    expect(entry.querySelector('.measured')).toBeTruthy(); // A7's component, not a reformat
+    expect(entry.querySelector('.num--recorded')).toBeTruthy(); // A7's component, not a reformat
+    expect(entry.querySelector('.measured')).toBeNull(); // saved history never wears orange
     expect(entry.textContent).toContain('16.02 in');
     expect(entry.textContent).toContain('±0.25 in');
     expect(entry.textContent).toContain('STUD');
