@@ -21,6 +21,7 @@ import {
   fitPeak2D,
   formatAge,
   lensFocalUncertainty,
+  levelBiasPatch,
   loadOutcomes,
   LOCATOR_GRID,
   MAG_RESIDUAL_MAX,
@@ -173,6 +174,14 @@ describe('level reversal zero (§4.2.2)', () => {
     expect(r.biasDeg.rollDeg).toBeCloseTo(0.15, 10);
     expect(r.surfaceDeg.pitchDeg).toBeCloseTo(0.4, 10);
     expect(r.surfaceDeg.rollDeg).toBeCloseTo(-0.1, 10);
+  });
+
+  it('levelBiasPatch stores DEGREES — the unit contract A5 fixed in levelState.ts', () => {
+    const r = reversalFromCaptures({ pitchDeg: 0.65, rollDeg: 0.05 }, { pitchDeg: -0.15, rollDeg: 0.25 });
+    const patch = levelBiasPatch(r);
+    // The stored numbers ARE the degree values, not radians.
+    expect(patch.levelBias.pitch).toBeCloseTo(0.25, 10);
+    expect(patch.levelBias.roll).toBeCloseTo(0.15, 10);
   });
 });
 

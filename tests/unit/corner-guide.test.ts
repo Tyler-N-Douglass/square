@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CORNER_DEMOS,
   CORNER_GUIDE,
+  DEMOS,
   GLOSSARY_ADDITIONS,
   runCornerDemo,
   WORKED_LABEL,
@@ -106,6 +107,18 @@ describe('CORNER_DEMOS (ADR-012 worked examples)', () => {
     if (o.kind !== 'refusal') throw new Error('expected a refusal outcome');
     expect(o.result.ok).toBe(false);
     if (!o.result.ok) expect(o.result.reason).toBe('POOR_GEOMETRY');
+  });
+});
+
+describe('DEMOS — DemoSpec-shaped registry for the lead to merge', () => {
+  it('mirrors CORNER_DEMOS one-to-one with ordered narration times', () => {
+    expect(DEMOS.map((d) => d.fixtureId)).toEqual(CORNER_DEMOS.map((d) => d.id));
+    for (const d of DEMOS) {
+      expect(d.toolId).toBe('corner');
+      for (let i = 1; i < d.narration.length; i++) {
+        expect(d.narration[i]!.atT).toBeGreaterThan(d.narration[i - 1]!.atT);
+      }
+    }
   });
 });
 

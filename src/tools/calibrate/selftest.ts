@@ -124,7 +124,9 @@ export function selfTestView(cap: CapabilityReport): SelfTestHandle {
   });
 
   let running = false;
+  let wanted = false;
   const startSources = async (): Promise<void> => {
+    wanted = true;
     if (running) return;
     running = true;
     try {
@@ -157,8 +159,10 @@ export function selfTestView(cap: CapabilityReport): SelfTestHandle {
   ratesRow.append(wakeBtn);
 
   const onVisibility = (): void => {
+    // Stop while hidden (battery, SPEC §9); resume when the tab returns —
+    // the permission grant persists, only requestPermission needs a gesture.
     if (document.visibilityState === 'hidden') stopSources();
-    // Restart needs a tap on iOS — the WAKE button stays available.
+    else if (wanted) void startSources();
   };
   document.addEventListener('visibilitychange', onVisibility);
 

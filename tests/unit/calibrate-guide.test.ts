@@ -9,6 +9,7 @@ import {
   CALIBRATE_DEMOS,
   CALIBRATE_GUIDES,
   CALIBRATE_SYNTH_LABEL,
+  DEMOS,
   GLOSSARY_ADDITIONS,
   runCalibrateDemo,
   type CalibrateDemoOutcome,
@@ -108,6 +109,14 @@ describe('CALIBRATE DEMO — synthetic stream through the REAL fit (ADR-012)', (
         onResult: () => undefined,
       });
     expect(run()).toEqual(run());
+  });
+});
+
+describe('DEMOS — DemoSpec-shaped registry for the lead to merge', () => {
+  it('mirrors CALIBRATE_DEMOS one-to-one, failure first', () => {
+    expect(DEMOS.map((d) => d.fixtureId)).toEqual(CALIBRATE_DEMOS.map((d) => d.id));
+    expect(DEMOS[0]!.fixtureId).toBe('calibrate-magsafe-fail');
+    for (const d of DEMOS) expect(d.toolId).toBe('calibrate');
   });
 });
 

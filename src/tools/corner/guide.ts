@@ -13,6 +13,7 @@
  */
 import type { GuideSpec } from '../../guidance/tour';
 import type { GlossaryEntry } from '../../guidance/glossary';
+import type { DemoSpec } from '../../guidance/demo';
 import type { QuadAngleResult, Intrinsics, Px } from '../../geometry/angleSolver';
 import type { MonteCarloAngleResult } from '../../geometry/montecarlo';
 import type { SolverRunner } from './solverClient';
@@ -171,6 +172,18 @@ export async function runCornerDemo(spec: CornerDemoSpec, deps: CornerDemoDeps):
     mc,
   });
 }
+
+/**
+ * DemoSpec-shaped registry for the lead to merge (A5's pattern). The
+ * `fixtureId`s reference CORNER_DEMOS ids in THIS module — worked examples
+ * through the real solver (ADR-012), not tests/fixtures traces; the strict
+ * corpus-unification test applies to SCAN, where the trace corpus exists.
+ */
+export const DEMOS: DemoSpec[] = CORNER_DEMOS.map((d) => ({
+  toolId: d.toolId,
+  fixtureId: d.id,
+  narration: d.narration.map((text, i) => ({ atT: i * 1.5, text })),
+}));
 
 /* ------------------------------------------------------------------ */
 /* Glossary additions (lead merges into src/guidance/glossary.ts)      */

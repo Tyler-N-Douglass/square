@@ -15,6 +15,7 @@
  */
 import type { GuideSpec } from '../../guidance/tour';
 import type { GlossaryEntry } from '../../guidance/glossary';
+import type { DemoSpec } from '../../guidance/demo';
 import type { Vec3 } from '../../types';
 import { fitEllipsoid, type EllipsoidFit } from '../../dsp/calibration';
 import { CoverageTracker, evaluateMagFit, type MagEvaluation } from './logic';
@@ -218,6 +219,17 @@ export function runCalibrateDemo(spec: CalibrateDemoSpec, deps: CalibrateDemoDep
   deps.onResult(outcome);
   return outcome;
 }
+
+/**
+ * DemoSpec-shaped registry for the lead to merge (A5's pattern). The
+ * `fixtureId`s reference CALIBRATE_DEMOS ids in THIS module — deterministic
+ * synthetic streams through the real fit (ADR-012), not trace fixtures.
+ */
+export const DEMOS: DemoSpec[] = CALIBRATE_DEMOS.map((d) => ({
+  toolId: d.toolId,
+  fixtureId: d.id,
+  narration: d.narration.map((text, i) => ({ atT: i * 1.5, text })),
+}));
 
 /* ------------------------------------------------------------------ */
 /* Glossary additions (lead merges into src/guidance/glossary.ts)      */
