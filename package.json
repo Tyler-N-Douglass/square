@@ -1,0 +1,23 @@
+{
+  "name": "square",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SQUARE — is it square? Phone-sensor measuring tools for home projects. Offline-first PWA, zero runtime dependencies.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && node scripts/build-sw.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify:fixtures": "vitest run tests/fixtures.verify.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
+  }
+}
