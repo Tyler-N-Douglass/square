@@ -38,6 +38,10 @@ export interface CameraOverlayDeps {
   platform: 'ios' | 'android' | 'desktop' | 'unknown';
   lockTolDeg: number;
   getReading(): OverlayReadingSnapshot | null;
+  /** Claim discipline for the burned label (H-06): the ± the app is entitled
+   *  to claim (degrees) and whether the reversal calibration backs it. A
+   *  saved photo outlives the session — it must carry both (SPEC §15.1). */
+  getClaim(): { plusMinusDeg: number; calibrated: boolean };
   onFreeze(capture: { angleDeg: number; stable: boolean; blob: Blob | null; dataUrl: string | null }): void;
   announce?(text: string): void;
 }
@@ -272,9 +276,26 @@ export function cameraOverlay(deps: CameraOverlayDeps): CameraOverlayEl {
         lineWidth: Math.max(2, Math.round(3 * k)),
         clear: false,
       });
-      bctx.fillStyle = colors.wedge;
-      bctx.font = `${Math.max(16, Math.round(24 * k))}px sans-serif`;
-      bctx.fillText(`${lastTiltDeg.toFixed(1)}°`, t.x * k + 12, t.y * k - 12);
+      // Label card — CORNER's annotate pattern (src/tools/corner/annotate.ts):
+      // flat ink card, off-white monospace type, never orange. A frozen frame
+      // is not a live sensor value (H-06), and the burn carries the ± and the
+      // calibration state because the photo outlives the session.
+      const claim = deps.getClaim();
+      const labelLines = [
+        `${lastTiltDeg.toFixed(1)}° ±${claim.plusMinusDeg}°`,
+        claim.calibrated ? 'reversal-calibrated' : 'uncalibrated',
+      ];
+      const s = Math.max(2, Math.round(bw / 480));
+      const fontPx = 10 * s;
+      bctx.font = `${fontPx}px monospace`;
+      const pad = 4 * s;
+      const widest = labelLines.reduce((m, l) => Math.max(m, bctx.measureText(l).width), 0);
+      bctx.fillStyle = '#1A1A1A';
+      bctx.fillRect(0, 0, widest + pad * 2, labelLines.length * (fontPx + pad / 2) + pad * 1.5);
+      bctx.fillStyle = '#F1F2F2';
+      labelLines.forEach((line, i) => {
+        bctx.fillText(line, pad, pad + fontPx * (i + 1) + (pad / 2) * i);
+      });
       try {
         dataUrl = burn.toDataURL('image/jpeg', 0.8);
         frozenImg.src = dataUrl;

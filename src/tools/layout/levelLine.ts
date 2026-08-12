@@ -84,15 +84,23 @@ export class RollCapture {
 export interface LevelLineDrop {
   /** How far the line falls over the span: tan(roll) · span, inches. */
   dropIn: number;
-  /** Propagated: span · σθ / cos²θ, inches. */
+  /** Propagated: span · δθ / cos²θ, inches. */
   plusMinusIn: number;
 }
 
-export function levelLineDrop(reading: RollReading, spanIn: number): LevelLineDrop {
+/**
+ * Drop over the span, with the ± propagated from the DISCIPLINED angle
+ * uncertainty. `plusMinusRad` is the same ± the roll readout claims —
+ * max(calibration-state claim, window scatter), per LEVEL's claim discipline
+ * (SPEC §2.3.5; src/tools/level/levelState.ts) — never the raw window
+ * scatter alone: a quiet sensor cannot talk its way past an uncalibrated
+ * zero, and neither can the drop derived from it.
+ */
+export function levelLineDrop(reading: RollReading, spanIn: number, plusMinusRad: number): LevelLineDrop {
   const c = Math.cos(reading.rollRad);
   return {
     dropIn: outOverRun(reading.rollRad, spanIn),
-    plusMinusIn: (spanIn * reading.stddevRad) / (c * c),
+    plusMinusIn: (spanIn * plusMinusRad) / (c * c),
   };
 }
 

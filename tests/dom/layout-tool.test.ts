@@ -6,9 +6,11 @@
  *  - refusals render the stated reason, never a clamped table;
  *  - outputs wear derived provenance — no orange without a live sensor.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '../../src/tools/layout/index';
 import { LAYOUT_TAPE_WARNING } from '../../src/geometry/layout';
+import { clearProfile, updateProfile } from '../../src/app/calibrationStore';
+import { gravityForAngles } from '../../src/tools/level/demoStream';
 import type { AppContext } from '../../src/app/router';
 import type { CapabilityReport } from '../../src/sensors/types';
 
@@ -173,5 +175,90 @@ describe('LAYOUT tool', () => {
     expect(document.querySelector('.coach')).toBeTruthy();
     unmount();
     expect(document.querySelector('.coach')).toBeNull();
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Level-line claim discipline (H-01, SPEC §2.3.5): the roll capture
+ * subtracts the stored reversal bias, its ± is never tighter than the
+ * calibration-state claim, and confidence caps at LIKELY uncalibrated.
+ * ------------------------------------------------------------------ */
+
+describe('LAYOUT level line — claim discipline (H-01)', () => {
+  let vnow = 0;
+
+  const tick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+
+  function motion(a: readonly [number, number, number]): void {
+    vnow += 16.7;
+    const e = new Event('devicemotion') as Event & {
+      accelerationIncludingGravity: { x: number; y: number; z: number };
+      rotationRate: { alpha: number; beta: number; gamma: number };
+    };
+    e.accelerationIncludingGravity = { x: a[0], y: a[1], z: a[2] };
+    e.rotationRate = { alpha: 0, beta: 0, gamma: 0 };
+    window.dispatchEvent(e);
+  }
+
+  async function captureRoll(el: HTMLElement, rollDeg: number): Promise<void> {
+    (el.querySelector('#layout-level-wake') as HTMLButtonElement).click();
+    await tick();
+    await tick();
+    const armBtn = [...el.querySelectorAll('button')].find((b) => b.textContent === 'CAPTURE ROLL')!;
+    expect(armBtn.hasAttribute('disabled')).toBe(false);
+    armBtn.click();
+    // 400 ms stillness gate + 500 ms capture window at ~60 Hz
+    const g = gravityForAngles(0, rollDeg) as unknown as readonly [number, number, number];
+    for (let i = 0; i < 80; i++) motion(g);
+  }
+
+  beforeEach(() => {
+    vnow = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => vnow);
+    // No requestPermission function → 'not-required', same as Android.
+    (globalThis as Record<string, unknown>)['DeviceMotionEvent'] = function DeviceMotionEvent(): void {};
+    localStorage.clear();
+    clearProfile();
+  });
+
+  afterEach(() => {
+    delete (globalThis as Record<string, unknown>)['DeviceMotionEvent'];
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  it('uncalibrated: a very quiet window still claims ±0.50° and caps at LIKELY — and the drop inherits the ±', async () => {
+    const { el, unmount } = mountTool();
+    setInput(el, '#layout-span', `10'`);
+    await captureRoll(el, 0.42);
+
+    const level = el.querySelector('#layout-level')!;
+    const readout = level.querySelector('.num--measured')!;
+    // The window scatter here is ~0° — the old code claimed ±0.05° STRONG.
+    expect(readout.querySelector('.num__pm')!.textContent).toBe('±0.50°');
+    expect(readout.querySelector('.num__pm')!.getAttribute('data-basis')).toBe('nominal');
+    expect(readout.querySelector('.conf--likely')).toBeTruthy();
+    expect(readout.querySelector('.conf--strong')).toBeNull();
+    // The claim line states which state is in effect.
+    expect(level.textContent).toContain('reversal calibration not run');
+    // Drop over 120″: ± = span · claimRad / cos²θ ≈ 1.05″, basis nominal —
+    // an order of magnitude wider than the old scatter-only ±0.08″.
+    const drop = level.querySelector('.num--derived .num__pm')!;
+    expect(drop.textContent).toBe('±1.0″');
+    expect(drop.getAttribute('data-basis')).toBe('nominal');
+    unmount();
+  });
+
+  it('calibrated: subtracts the stored levelBias (degrees) and claims ±0.15° STRONG', async () => {
+    updateProfile({ levelBias: { pitch: 0, roll: 0.42 } });
+    const { el, unmount } = mountTool();
+    await captureRoll(el, 0.42);
+
+    const readout = el.querySelector('#layout-level .num--measured')!;
+    // The bias is subtracted before the capture ever sees the roll.
+    expect(Math.abs(parseFloat(readout.querySelector('.num__value')!.textContent!))).toBeLessThan(0.05);
+    expect(readout.querySelector('.num__pm')!.textContent).toBe('±0.15°');
+    expect(readout.querySelector('.conf--strong')).toBeTruthy();
+    unmount();
   });
 });

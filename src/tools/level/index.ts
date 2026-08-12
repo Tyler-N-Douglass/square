@@ -22,6 +22,7 @@ import { recoveryInstructions, requestMotionPermissions } from '../../sensors/pe
 import { outOverRun } from '../../geometry/levelMath';
 import { derivedEl, enteredEl, measuredEl, type MeasuredNumberEl } from '../../ui/components/number';
 import { ghostBob } from '../../ui/components/mark';
+import { warningBanner, WARNING_COPY } from '../../ui/components/warning';
 import { bottomBar } from '../../ui/components/toolbar';
 import { coachMark } from '../../ui/components/coach';
 import { announce } from '../../app/shell';
@@ -32,13 +33,14 @@ import { saveMeasurement, saveMedia } from '../../app/logStore';
 import {
   calibrationsForProvenance,
   getProfile,
+  persistenceOk,
   subscribeProfile,
   updateProfile,
 } from '../../app/calibrationStore';
 import { rafWriter } from '../../app/store';
 import { runGuide, type GuideDeps, type GuideHandle } from '../../guidance/tour';
 import { FadingStore } from '../../guidance/fading';
-import { UNCERTAINTY_EXPLAINER } from '../../guidance/explainers';
+import { UNCERTAINTY_EXPLAINER, WARNING_EXPLAINERS } from '../../guidance/explainers';
 import { cameraOverlay } from '../../ui/overlay/cameraOverlay';
 import {
   bubbleXY,
@@ -114,6 +116,11 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
   let lastStripDeg: number | null = null;
   let lastOutDeg: number | null = null;
   let watchdog: ReturnType<typeof setTimeout> | null = null;
+  /** H-02: the live stream reported dead — the last value is dimmed, the
+   *  state word says SENSOR LOST, and the recovery panel shows. Cleared by
+   *  the next real sample. */
+  let sensorLost = false;
+  let healthPoll: ReturnType<typeof setInterval> | null = null;
   const unsubs: Array<() => void> = [];
 
   /* ================= DOM ================= */
@@ -146,6 +153,12 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
   claimBtn.type = 'button';
   claimBtn.className = 'level__claim';
   root.append(claimBtn);
+
+  // -- source-health warning host (H-02: degraded rate surfaces, never silent) --
+  const healthWarn = document.createElement('div');
+  healthWarn.className = 'level__healthwarn';
+  healthWarn.hidden = true;
+  root.append(healthWarn);
 
   // -- reversal result panel --
   const revResult = document.createElement('div');
@@ -291,6 +304,8 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
         measurement: dm(view.tilt, 'overlay', view.stable),
       };
     },
+    // H-06: the burned still carries the claim discipline, not a bare angle.
+    getClaim: () => ({ plusMinusDeg: claim.plusMinus, calibrated: claim.calibrated }),
     onFreeze: (capture) => void onOverlayFreeze(capture),
     announce,
   });
@@ -446,6 +461,7 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
   /* ---- render path (rAF-coalesced; SPEC §3.1) ---- */
 
   const render = rafWriter<View>((v) => {
+    if (sensorLost) return; // a dead stream never repaints a live state (H-02)
     stateWord.textContent = v.stable ? 'HOLD' : 'MOVING';
     stateWord.classList.toggle('level__state--hold', v.stable);
     stateWord.classList.toggle('level__state--moving', !v.stable);
@@ -658,7 +674,16 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     done.addEventListener('click', () => {
       revResult.hidden = true;
     });
-    revResult.append(head, biasLine, surfLine, claimLine, done);
+    revResult.append(head, biasLine, surfLine, claimLine);
+    if (!persistenceOk()) {
+      // H-04: the write did not reach durable storage — say so, same copy
+      // pattern LOG uses. The calibration still works for this session.
+      const persistLine = document.createElement('p');
+      persistLine.className = 'level__revline level__revline--persist';
+      persistLine.textContent = 'Storage is session-only in this browser mode — this calibration lasts until the tab closes.';
+      revResult.append(persistLine);
+    }
+    revResult.append(done);
     revResult.hidden = false;
     announce('Reversal calibration complete. The claim is now plus or minus 0.15 degrees.', 'polite');
   }
@@ -921,6 +946,49 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
 
   let gotSample = false;
 
+  /* ---- source health (H-02): a stream that dies after HOLD must not leave
+   *      a frozen orange angle looking live. Poll the source's own health
+   *      word every second while live; the first-2.5 s window belongs to the
+   *      no-sample watchdog above. Demos are synthetic and exempt. ---- */
+
+  function onStreamDead(): void {
+    sensorLost = true;
+    resetLevelTone();
+    stateWord.textContent = 'SENSOR LOST';
+    stateWord.classList.remove('level__state--hold');
+    stateWord.classList.add('level__state--moving');
+    root.classList.add('level--moving'); // dims the readout — the last value no longer looks live
+    ghost.hidden = true;
+    showNoSensors();
+    announce('Motion samples stopped arriving. The last reading is no longer live.', 'assertive');
+  }
+
+  function syncDegraded(degraded: boolean): void {
+    if (degraded === !healthWarn.hidden) return;
+    if (degraded) {
+      healthWarn.replaceChildren(
+        warningBanner('RATE_COLLAPSE', WARNING_COPY.RATE_COLLAPSE, () => {
+          const ex = WARNING_EXPLAINERS.RATE_COLLAPSE;
+          showExplain(`${ex.why} ${ex.whatToDo}`);
+        }),
+      );
+      healthWarn.hidden = false;
+    } else {
+      healthWarn.replaceChildren();
+      healthWarn.hidden = true;
+    }
+  }
+
+  function startHealthPoll(): void {
+    if (healthPoll !== null) return;
+    healthPoll = setInterval(() => {
+      if (!sensorsLive || demoActive || !gotSample) return;
+      const health = fusion.health;
+      if (health === 'dead' && !sensorLost) onStreamDead();
+      syncDegraded(health === 'degraded');
+    }, 1000);
+  }
+
   async function beginSensors(): Promise<void> {
     await fusion.start();
     unsubs.push(
@@ -930,6 +998,11 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
           noSensorsPanel.hidden = true;
           if (watchdog) { clearTimeout(watchdog); watchdog = null; }
         }
+        if (sensorLost) {
+          // Samples resumed — the panel clears and the render path repaints.
+          sensorLost = false;
+          noSensorsPanel.hidden = true;
+        }
         handleOrientation(o);
       }),
     );
@@ -937,6 +1010,7 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     wakePanel.hidden = true;
     guideHandle?.fireCustom('sensors-live');
     void requestWakeLock();
+    startHealthPoll();
     watchdog = setTimeout(() => {
       if (!gotSample) showNoSensors();
     }, 2500);
@@ -967,6 +1041,7 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     imu.stop();
     resetLevelTone();
     if (watchdog) clearTimeout(watchdog);
+    if (healthPoll !== null) clearInterval(healthPoll);
     void releaseWakeLock();
   };
 }

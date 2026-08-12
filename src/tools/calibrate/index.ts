@@ -13,6 +13,7 @@ import {
   getProfile,
   updateProfile,
   calibrationAgeMs,
+  persistenceOk,
 } from '../../app/calibrationStore';
 import { requestWakeLock, releaseWakeLock } from '../../app/wakelock';
 import { derivedEl } from '../../ui/components/number';
@@ -63,6 +64,21 @@ import {
   runCalibrateDemo,
 } from './guide';
 import { selfTestView, noteError, type SelfTestHandle } from './selftest';
+
+/** H-04: appended to a PASS screen when the profile write could not reach
+ *  durable storage (private mode, quota) — same copy pattern LOG uses. The
+ *  routine still counts for this session; the claim must not say "stored"
+ *  unqualified when it was not (SPEC §15.4). */
+const SESSION_ONLY_NOTICE =
+  'Storage is session-only in this browser mode — this calibration lasts until the tab closes.';
+
+function persistNotice(): HTMLElement | null {
+  if (persistenceOk()) return null;
+  const p = document.createElement('p');
+  p.className = 'calib-persist-note';
+  p.textContent = SESSION_ONLY_NOTICE;
+  return p;
+}
 
 const CSS = `
 .calib { padding: 16px; max-width: 720px; margin: 0 auto 96px; }
@@ -443,6 +459,8 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
           const ok = document.createElement('p');
           ok.textContent = 'PASS — stored. SCAN now subtracts this phone’s own field from every reading.';
           resultHost.append(ok);
+          const note = persistNotice();
+          if (note) resultHost.append(note);
           announce('Calibration pass. Stored.');
         } else {
           saveOutcome('mag', { at: Date.now(), pass: false, note: ev.reasons[0] ?? 'failed' });
@@ -713,6 +731,8 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
             claim.textContent =
               'PASS — stored. LEVEL now subtracts this bias and may claim ±0.15° instead of ±0.5° (the measured number lives in ACCURACY.md).';
             resultHost.append(claim);
+            const note = persistNotice();
+            if (note) resultHost.append(note);
             announce('Reversal zero stored. Level claims tighten.');
             fireGuide('lz-stored');
           } else {
@@ -869,6 +889,8 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
       const ok = document.createElement('p');
       ok.textContent = `PASS — stored for this camera. CORNER now reads LENS: CALIBRATED (f = ${Math.round(res.fPx)} px) and claims ±0.3–0.8°.`;
       resultHost.append(ok);
+      const note = persistNotice();
+      if (note) resultHost.append(note);
       announce('Lens calibration stored.');
       memory.recordRun('calibrate');
     };

@@ -367,3 +367,26 @@ Zero-egress: **proven statically, pinned by tests**; the airplane-mode device pa
 Gate 4 checklist as confirmation, not as an open question.
 
 — A11
+
+---
+
+## Resolution — Gate 3 close-out (lead)
+
+All must-fix findings are resolved and verified by the suite (1032/1032 green, including the
+four honesty pinning files; `honesty-home-replay` now passes against the fixed code):
+
+| Finding | Resolution |
+|---|---|
+| H-01 | LAYOUT's roll capture subtracts stored levelBias and builds its Measurement through LEVEL's own claim discipline (`claimFor`/`uncertaintyForSave`/`confidenceFor`): ±0.5° floor uncalibrated, ±0.15° calibrated, LIKELY cap uncalibrated, ± propagated into the drop derivation. Pinned by new layout unit + DOM tests. |
+| H-02 | SCAN and LEVEL poll `source.health` at 1 s while running: dead → SENSOR LOST state, tone/haptics stopped, readout cleared/dimmed to non-live, existing recovery panel shown; degraded → RATE_COLLAPSE banner from the source side. Pinned by new scan/level DOM tests. |
+| H-03 | Home replay panel takes its unit from the trace, renders as a raw signal (not `.measured`), and says where qualification happens. A11's pinning test passes. |
+| H-04 | `calibrationStore.persistenceOk()`; all three CALIBRATE PASS screens and LEVEL's reversal panel append the session-only notice when persistence failed. |
+| H-05 | Per-part `updatedAtByPart` stamps; `calibrationAgeMs` prefers them, so no calibration freshens another's age — provenance now truthful. |
+| H-06 | Frozen overlay burn renders the annotate-style ink card with ± and calibration state; no orange on the export (the live wedge keeps orange — it is live). |
+| H-07 | LAYOUT photo canvas draws in the resolved `--type` token; zero orange on derived marks; theme-correct in NIGHT. |
+
+MINOR findings: acceptable-with-note per the audit's verdict; they remain listed above as open
+notes for the field-tuning session.
+
+Audit status: **CLOSED** for Gate 3. The four honesty test files stay in the suite as the
+permanent regression net for these properties.

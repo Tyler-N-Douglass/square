@@ -216,11 +216,25 @@ describe('level line (§4.4.2 numeric)', () => {
     expect(cap.phase.phase).toBe('moving');
   });
 
-  it('drop over the span is tan(θ)·L with propagated ±', () => {
+  it('drop over the span is tan(θ)·L with the DISCIPLINED ± propagated (H-01)', () => {
+    // The caller hands in the disciplined ±: max(calibration-state claim,
+    // window scatter). A very quiet window (σ = 0.1°) on an uncalibrated
+    // phone still propagates the ±0.5° claim floor — never the raw scatter.
     const reading = { rollRad: (1 * Math.PI) / 180, stddevRad: (0.1 * Math.PI) / 180, sampleCount: 30, t: 0 };
-    const d = levelLineDrop(reading, 96);
+    const claimRad = (0.5 * Math.PI) / 180; // uncalibrated claim floor, radians
+    const d = levelLineDrop(reading, 96, claimRad);
     expect(d.dropIn).toBeCloseTo(Math.tan(reading.rollRad) * 96, 9);
-    expect(d.plusMinusIn).toBeCloseTo((96 * reading.stddevRad) / Math.cos(reading.rollRad) ** 2, 9);
+    expect(d.plusMinusIn).toBeCloseTo((96 * claimRad) / Math.cos(reading.rollRad) ** 2, 9);
+    // The scatter never leaks into the ± on its own.
+    expect(d.plusMinusIn).toBeGreaterThan((96 * reading.stddevRad) / Math.cos(reading.rollRad) ** 2);
+  });
+
+  it('a noisy window dominates the claim when it is genuinely wider', () => {
+    // When the scatter exceeds the claim, the caller passes the scatter —
+    // the propagation itself is the same δθ → span·δθ/cos²θ either way.
+    const reading = { rollRad: 0, stddevRad: (0.8 * Math.PI) / 180, sampleCount: 30, t: 0 };
+    const d = levelLineDrop(reading, 48, reading.stddevRad);
+    expect(d.plusMinusIn).toBeCloseTo(48 * reading.stddevRad, 9);
   });
 
   it('states the §4.4.2 boundary verbatim', () => {

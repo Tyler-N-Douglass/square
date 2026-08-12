@@ -35,6 +35,7 @@ import {
 import { LAYOUT_PRESETS } from './presets';
 import { LAYOUT_DEMOS, LAYOUT_GUIDE } from './guide';
 import { OVERLAY_BOUNDARY_LINE, RollCapture, levelLineDrop } from './levelLine';
+import { claimFor, confidenceFor, uncertaintyForSave } from '../level/levelState';
 import { DeviceMotionSource } from '../../sensors/imu';
 import { OrientationFusion } from '../../sensors/orientation';
 import { requestMotionPermissions, recoveryInstructions } from '../../sensors/permissions';
@@ -50,6 +51,7 @@ import { FadingStore } from '../../guidance/fading';
 import { runGuide, type GuideHandle } from '../../guidance/tour';
 
 const DEG = 180 / Math.PI;
+const RAD = Math.PI / 180;
 
 function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -339,7 +341,12 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
       levelState.textContent = 'SENSORS ON';
       announce('Motion sensors on');
       cleanups.push(fusion.subscribe((o) => {
-        const phase = rollCapture.ingest(o);
+        // H-01: subtract the stored reversal bias (DEGREES — A5 unit
+        // contract, levelState.ts header) before the capture ever sees the
+        // roll. Raw fusion output carries the sensor's zero error.
+        const bias = getProfile().levelBias;
+        const corrected = bias ? { ...o, roll: o.roll - bias.roll * RAD } : o;
+        const phase = rollCapture.ingest(corrected);
         if (phase.phase === 'moving') levelState.textContent = 'MOVING — hold still';
         else if (phase.phase === 'settling') levelState.textContent = `HOLD… ${Math.round(phase.progress * 100)}%`;
         else if (phase.phase === 'captured' && !levelOut.hasChildNodes()) renderRoll(phase.reading.rollRad, phase.reading.stddevRad, phase.reading.sampleCount);
@@ -357,14 +364,20 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     levelState.textContent = 'CAPTURED';
     vibrate(30);
     const rollDeg = rollRad * DEG;
-    const stddevDeg = Math.max(0.05, stddevRad * DEG);
+    const stddevDeg = stddevRad * DEG;
+    // Claim discipline (SPEC §2.3.5, H-01): the ± is never tighter than the
+    // calibration-state claim — ±0.5° uncalibrated, ±0.15° after reversal —
+    // and confidence caps at LIKELY without a stored levelBias. The window
+    // scatter measures noise, not bias; LEVEL's levelState.ts owns the rule.
+    const claim = claimFor(getProfile());
+    const u = uncertaintyForSave(claim.plusMinus, { n: samples, mean: rollDeg, stddev: stddevDeg });
     const m: Measurement = {
       id: newId(),
       kind: 'level',
       value: rollDeg,
       unit: '°',
-      uncertainty: { plusMinus: stddevDeg, basis: 'stddev' },
-      confidence: stddevDeg <= 0.3 ? 'STRONG' : stddevDeg <= 1 ? 'LIKELY' : 'POSSIBLE',
+      uncertainty: u,
+      confidence: confidenceFor(true, claim.calibrated),
       provenance: {
         tier: ctx.capability.magTier,
         calibrations: calibrationsForProvenance(getProfile()),
@@ -373,20 +386,21 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
       },
     };
     const line = h('div');
-    line.append(h('span', 'layout__hint', 'Roll: '), measuredEl(m, { decimals: 2 }));
+    line.append(h('span', 'layout__hint', 'Roll: '), measuredEl(m, { decimals: 2, showConfidence: 'always' }));
     levelOut.append(line);
+    levelOut.append(h('p', 'layout__hint', claim.text));
     if (spanIn !== null) {
       const spanNum = toNumber(spanIn);
-      const drop = levelLineDrop({ rollRad, stddevRad, sampleCount: samples, t: 0 }, spanNum);
+      const drop = levelLineDrop({ rollRad, stddevRad, sampleCount: samples, t: 0 }, spanNum, u.plusMinus * RAD);
       const dropLine = h('div');
       dropLine.append(
         h('span', 'layout__hint', `Drop over ${formatFtIn(spanIn, precision).text}: `),
-        derivedEl(drop.dropIn, '″', Math.max(0.01, drop.plusMinusIn), 'stddev', { decimals: 2 }),
+        derivedEl(drop.dropIn, '″', Math.max(0.01, drop.plusMinusIn), u.basis, { decimals: 2 }),
       );
       levelOut.append(dropLine);
     }
     levelOut.append(h('p', 'levelline__boundary', OVERLAY_BOUNDARY_LINE));
-    announce(`Roll captured: ${rollDeg.toFixed(2)} degrees`);
+    announce(`Roll captured: ${rollDeg.toFixed(2)} degrees, plus or minus ${u.plusMinus.toFixed(2)}`);
   };
 
   /* ---------------- photo-scaled layout (§4.4.2) ---------------- */
@@ -428,19 +442,32 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
   let photoPoints: Array<{ x: number; y: number }> = [];
   let photoScale: PhotoScale | null = null;
 
+  // Canvas ink resolved from the --type token (ribbon.ts pattern): these are
+  // DERIVED marks from ENTERED spans — never orange (SPEC §7.1, H-07) — and
+  // the token keeps them theme-correct in NIGHT.
+  const canvasInk = (): string => {
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--type').trim();
+      return v || '#1A1A1A';
+    } catch {
+      return '#1A1A1A';
+    }
+  };
+
   const drawPhoto = (): void => {
     const cx = canvas.getContext('2d');
     if (!cx || !photoImg) return;
+    const ink = canvasInk();
     cx.clearRect(0, 0, canvas.width, canvas.height);
     cx.drawImage(photoImg, 0, 0, canvas.width, canvas.height);
     cx.lineWidth = 3;
     photoPoints.forEach((p, i) => {
       const isRef = i < 2;
-      cx.strokeStyle = isRef ? '#1A1A1A' : '#F15A22';
+      cx.strokeStyle = ink;
       cx.beginPath();
       cx.arc(p.x, p.y, 10, 0, Math.PI * 2);
       cx.stroke();
-      cx.fillStyle = cx.strokeStyle;
+      cx.fillStyle = ink;
       cx.font = '16px sans-serif';
       cx.fillText(isRef ? `R${i + 1}` : i === 2 ? 'A' : 'B', p.x + 14, p.y - 6);
     });
@@ -448,7 +475,7 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     const a = photoPoints[2];
     const b = photoPoints[3];
     if (a && b && photoScale && computation?.ok) {
-      cx.strokeStyle = '#F15A22';
+      cx.strokeStyle = ink;
       cx.beginPath();
       cx.moveTo(a.x, a.y);
       cx.lineTo(b.x, b.y);
@@ -469,7 +496,7 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
         cx.lineTo(mx - 8, my + 8);
         cx.stroke();
         const label = rows[i]?.cumulative.text ?? '';
-        cx.fillStyle = '#F15A22';
+        cx.fillStyle = ink;
         cx.fillText(label, mx + 10, my + 20);
       });
     }

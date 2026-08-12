@@ -478,6 +478,13 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
   let demoActive = false;
   let guideHandle: GuideHandle | null = null;
   let unmounted = false;
+  /** H-02: set when the live source reported dead — the readout is cleared
+   *  and the state word holds SENSOR LOST until a fresh start. */
+  let sensorLost = false;
+  /** H-02: the source-side rate collapse, surfaced through the same
+   *  RATE_COLLAPSE banner the pipeline uses. */
+  let sourceDegraded = false;
+  let healthPoll: ReturnType<typeof setInterval> | null = null;
 
   const sampleTaps = new Set<(s: MagSample) => void>();
 
@@ -507,6 +514,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
   /* ====================================================================== */
 
   const writeState = rafWriter<FeedbackFrame>((f) => {
+    if (sensorLost) return; // a dead source never repaints a live state word (H-02)
     stateword.textContent = f.word === 'NOTHING' ? '— NOTHING —' : f.word === 'EDGE' ? '> EDGE <' : '[ ● PEAK ]';
     stateword.dataset['state'] = f.word;
     snrEl.textContent = f.sigma > 0 ? `SNR ${(Math.abs(f.residual) / f.sigma).toFixed(1)}` : '';
@@ -528,6 +536,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
   const renderWarnings = (pipelineWarnings: readonly WarningKey[]): void => {
     const keys = new Set<WarningKey>(pipelineWarnings);
     if (uncalActive()) keys.add('UNCALIBRATED');
+    if (sourceDegraded) keys.add('RATE_COLLAPSE'); // source-side collapse (H-02)
     const sig = [...keys].sort().join(',');
     if (sig === warnSignature) return;
     warnSignature = sig;
@@ -697,6 +706,73 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
     announce('Sensor unavailable. Recovery instructions shown.', 'assertive');
   };
 
+  /* ---- source health (H-02): a dead stream must never keep rendering ---- */
+
+  const stopHealthPoll = (): void => {
+    if (healthPoll !== null) {
+      clearInterval(healthPoll);
+      healthPoll = null;
+    }
+    if (sourceDegraded) {
+      sourceDegraded = false;
+      renderWarnings(lastAnalysis?.warnings ?? []);
+    }
+  };
+
+  /** The live source went dead mid-sweep: stop tone and haptics, clear the
+   *  state word to SENSOR LOST, clear the readout to '—' (the last number
+   *  must never keep looking live), show the recovery panel. */
+  const onSourceDead = (): void => {
+    const kind = sourceKind === 'proxy' ? 'motion' : 'magnetometer';
+    running = false;
+    sensorLost = true;
+    stopHealthPoll();
+    stopMetronome();
+    stopTone();
+    unsubSource?.();
+    unsubSource = null;
+    source?.stop();
+    source = null;
+    imu?.stop();
+    imu = null;
+    void releaseWakeLock();
+    session.reset();
+    ribbon.stop();
+    ribbon.renderOnce();
+    stateword.textContent = 'SENSOR LOST';
+    stateword.dataset['state'] = 'LOST';
+    snrEl.textContent = '';
+    readout?.update({
+      id: 'scan-live',
+      kind: 'stud',
+      value: NaN,
+      unit: unitFor(dataTier),
+      uncertainty: { plusMinus: NaN, basis: 'unknown' },
+      confidence: 'NOISE',
+      provenance: { tier: dataTier, calibrations: {}, sampleCount: 0, capturedAt: 0 },
+    });
+    showRecovery(kind, 'The sensor stream went dead mid-sweep — samples stopped arriving. The last reading is no longer live.');
+    syncControls();
+  };
+
+  const startHealthPoll = (): void => {
+    stopHealthPoll();
+    if (sourceKind === 'replay') return; // replay ends via onEnd; its health stays 'ok'
+    healthPoll = setInterval(() => {
+      if (!running || source === null) return;
+      const health = source.health;
+      if (health === 'dead') {
+        onSourceDead();
+        return;
+      }
+      const degraded = health === 'degraded';
+      if (degraded !== sourceDegraded) {
+        sourceDegraded = degraded;
+        renderWarnings(lastAnalysis?.warnings ?? []);
+      }
+    }, 1000);
+  };
+
   const startMetronome = (): void => {
     if (session.mode !== 'paced') return;
     metronome = setInterval(() => tick('metronome'), 1000);
@@ -774,6 +850,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
     }
     if (demoActive) stopDemo();
     recoveryPanel.hidden = true;
+    sensorLost = false;
     clearPass(firstPass !== null);
     // Optimistic: a 'sync'-clock replay delivers the whole trace INSIDE
     // makeAndStartSource and its onEnd flips `running` back off before we
@@ -792,6 +869,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
     if (running) {
       void requestWakeLock();
       startMetronome();
+      startHealthPoll();
       ribbon.start();
       announce(sourceKind === 'replay' ? 'Replay running' : 'Scanning. Hold the phone flat against the wall.');
     }
@@ -801,6 +879,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
   async function stopScan(): Promise<void> {
     if (!running) return;
     running = false;
+    stopHealthPoll();
     stopMetronome();
     stopTone();
     unsubSource?.();
@@ -959,6 +1038,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
     if (session.phase === 'awaitSpan') {
       // Second anchor ends the sweep — stop the sensor, ask for the distance.
       running = false;
+      stopHealthPoll();
       stopMetronome();
       stopTone();
       unsubSource?.();
@@ -1220,6 +1300,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
     unmounted = true;
     guideHandle?.stop();
     stopDemo();
+    stopHealthPoll();
     stopMetronome();
     stopTone();
     unsubSource?.();

@@ -11,8 +11,8 @@
  *  - a live FIELD device with no stored calibration shows UNCALIBRATED with
  *    a route to CALIBRATE.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
-import type { CapabilityReport } from '../../src/sensors/types';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CapabilityReport, MagSample, SourceHealth } from '../../src/sensors/types';
 import type { AppContext } from '../../src/app/router';
 import type { SensorTrace } from '../../src/types';
 import { mountScan } from '../../src/tools/scan/index';
@@ -150,6 +150,88 @@ describe('pipeline warnings render warning banners (real hot-wall fixture)', () 
     expect(panel.hidden).toBe(false);
     expect(panel.textContent).toContain('WALL READS HOT');
     expect(panel.textContent).toContain('Why this is happening');
+    unmount();
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * H-02: source.health is consumed while running — a dead stream stops
+ * rendering as live; a degraded stream surfaces RATE_COLLAPSE.
+ * ------------------------------------------------------------------ */
+
+class FakeFieldSource {
+  readonly nominalHz = 40;
+  health: SourceHealth = 'ok';
+  lastError: string | null = null;
+  private subs = new Set<(s: MagSample) => void>();
+  subscribe(fn: (s: MagSample) => void): () => void {
+    this.subs.add(fn);
+    return () => {
+      this.subs.delete(fn);
+    };
+  }
+  async start(): Promise<void> {
+    /* live immediately */
+  }
+  stop(): void {
+    /* nothing to release */
+  }
+  push(s: MagSample): void {
+    for (const fn of this.subs) fn(s);
+  }
+}
+
+describe('H-02 — a dead live source never keeps rendering as live', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function mountRunning(fake: FakeFieldSource): Promise<{ el: HTMLElement; unmount: () => void }> {
+    const el = document.createElement('div');
+    document.body.append(el);
+    const unmount = mountScan(el, ctxFor('FIELD'), { ...testDeps(), makeFieldSource: () => fake });
+    (el.querySelector('#scan-start') as HTMLButtonElement).click();
+    await vi.advanceTimersByTimeAsync(20);
+    for (let i = 0; i < 12; i++) fake.push({ t: i / 40, x: 0, y: 0, z: 48, mag: 48, tier: 'FIELD' });
+    await vi.advanceTimersByTimeAsync(40);
+    return { el, unmount };
+  }
+
+  it("dead mid-sweep → SENSOR LOST, cleared readout, recovery panel, and the button stops saying STOP", async () => {
+    vi.useFakeTimers();
+    const fake = new FakeFieldSource();
+    const { el, unmount } = await mountRunning(fake);
+    expect((el.querySelector('#scan-start') as HTMLButtonElement).textContent).toBe('STOP');
+    expect(el.querySelector('.scan__stateword')!.textContent).not.toBe('SENSOR LOST');
+
+    fake.health = 'dead';
+    await vi.advanceTimersByTimeAsync(1100);
+
+    expect(el.querySelector('.scan__stateword')!.textContent).toBe('SENSOR LOST');
+    const rec = el.querySelector('.scan__recovery') as HTMLElement;
+    expect(rec.hidden).toBe(false);
+    expect(rec.textContent).toContain('no longer live');
+    expect((el.querySelector('#scan-start') as HTMLButtonElement).textContent).toBe('START SCAN');
+    await vi.advanceTimersByTimeAsync(40); // the readout's raf write lands
+    expect(el.querySelector('.num--measured .num__value')!.textContent).toBe('—');
+    unmount();
+  });
+
+  it('degraded → the RATE_COLLAPSE banner surfaces from the source side, and clears on recovery', async () => {
+    vi.useFakeTimers();
+    const fake = new FakeFieldSource();
+    const { el, unmount } = await mountRunning(fake);
+    expect(el.querySelector('[data-warning-key="RATE_COLLAPSE"]')).toBeNull();
+
+    fake.health = 'degraded';
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(el.querySelector('[data-warning-key="RATE_COLLAPSE"]')).not.toBeNull();
+    // still running — degraded warns, it does not kill the sweep
+    expect((el.querySelector('#scan-start') as HTMLButtonElement).textContent).toBe('STOP');
+
+    fake.health = 'ok';
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(el.querySelector('[data-warning-key="RATE_COLLAPSE"]')).toBeNull();
     unmount();
   });
 });
