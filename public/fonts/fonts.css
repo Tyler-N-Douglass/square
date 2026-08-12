@@ -1,0 +1,39 @@
+/* DDC Hardware — Lost Type Co-op. Licensed by the app owner.
+   Patched in-repo: U+00B5 MICRO SIGN (built from 'u' + a stem descender) and
+   U+2032 PRIME (mapped to the straight quotesingle). Both were missing from the
+   originals and both are load-bearing here — µT for field readings, ′ for feet.
+   Modification is permitted under the Lost Type commercial license so long as the
+   font is not redistributed; do not publish these files as a downloadable font. */
+
+@font-face {
+  font-family: "DDC Hardware";
+  src: url("/fonts/ddchardware-regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "DDC Hardware Condensed";
+  src: url("/fonts/ddchardware-condensed.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "DDC Hardware Compressed";
+  src: url("/fonts/ddchardware-compressed.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+
+:root {
+  --font-display: "DDC Hardware Compressed", "DDC Hardware Condensed", system-ui, sans-serif;
+  --font-ui:      "DDC Hardware", system-ui, sans-serif;
+  --font-hud:     "DDC Hardware Condensed", ui-monospace, monospace;
+  --font-prose:   system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* DDC Hardware Condensed is genuinely tabular — every digit advances 1032/2048 em —
+   so live readouts do not jitter as they change. Verified, not assumed. */
+.hud { font-family: var(--font-hud); font-feature-settings: "tnum" 1; letter-spacing: 0.01em; }
+.display { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Body copy over ~3 lines goes to the system face. DDC Hardware is a display
+   family: it is superb on labels, numerals and tool names, and fatiguing over a
+   paragraph. The Field Manual is read, not glanced at. */
+.prose { font-family: var(--font-prose); }

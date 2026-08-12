@@ -1,0 +1,25 @@
+{
+  "name": "SQUARE",
+  "short_name": "SQUARE",
+  "description": "Photograph a wall. Know what's behind it and whether it's straight.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#2E2E2E",
+  "theme_color": "#F15A22",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/app-icon-square.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Scan a wall", "url": "/#/scan" },
+    { "name": "Level", "url": "/#/level" },
+    { "name": "Corner angle", "url": "/#/corner" },
+    { "name": "Field Manual", "url": "/#/manual" }
+  ]
+}

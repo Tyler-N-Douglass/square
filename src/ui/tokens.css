@@ -1,0 +1,67 @@
+/* SQUARE — design tokens. Draplin Design Co. direction: flat, heavy, high contrast.
+   No gradients, no glows, no shadows, radius 0. Copy this file in as-is; every hex in
+   BRAND.md and SPEC §7.1 comes from here, so nothing has to be transcribed by hand. */
+
+:root {
+  /* palette */
+  --orange:      #F15A22;   /* LIVE MEASURED VALUES ONLY */
+  --orange-deep: #C8481A;
+  --ink:         #1A1A1A;
+  --charcoal:    #2E2E2E;
+  --gray:        #58595B;
+  --gray-mid:    #939598;
+  --gray-light:  #D1D3D4;
+  --off-white:   #F1F2F2;
+  --white:       #FFFFFF;
+  --red:         #C1272D;   /* UNRELIABLE / out of tolerance */
+  --green:       #007A3D;   /* LOCK / TRUE / in tolerance */
+
+  /* semantic — SHOP theme is the default */
+  --ground:      var(--off-white);
+  --surface:     var(--white);
+  --type:        var(--ink);
+  --type-2:      var(--gray);
+  --rule:        var(--gray-light);
+  --rule-strong: var(--gray);
+
+  /* form */
+  --grid: 8px;
+  --rule-w: 3px;
+  --rule-w-strong: 6px;
+  --radius: 0;
+  --tap: 56px;
+  --tap-glove: 72px;
+  --hud-min: 64px;        /* primary readout floor — legible at arm's length */
+  --focus: 3px solid var(--orange);
+}
+
+[data-theme="night"] {
+  --ground:      var(--ink);
+  --surface:     var(--charcoal);
+  --type:        var(--off-white);
+  --type-2:      var(--gray-mid);
+  --rule:        var(--gray);
+  --rule-strong: var(--gray-mid);
+}
+
+[data-glove="on"] { --tap: var(--tap-glove); --grid: 12px; }
+
+*, *::before, *::after { box-sizing: border-box; border-radius: var(--radius); }
+body { background: var(--ground); color: var(--type); margin: 0; }
+:focus-visible { outline: var(--focus); outline-offset: 2px; }
+
+/* Provenance styling is a core honesty mechanism, not decoration.
+   MEASURED wears orange. DERIVED and ENTERED never do. */
+.measured { color: var(--orange); font-family: var(--font-hud); font-feature-settings: "tnum" 1; }
+.derived  { color: var(--type);   font-family: var(--font-hud); font-feature-settings: "tnum" 1; }
+.entered  { color: var(--type-2); font-family: var(--font-hud); font-feature-settings: "tnum" 1;
+            border-bottom: 2px dotted var(--rule-strong); }
+.state-unreliable { color: var(--red); }
+.state-lock       { color: var(--green); }
+
+/* Glossary terms: dotted gray, never orange — orange is reserved for live values. */
+.term { border-bottom: 2px dotted var(--gray); cursor: help; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

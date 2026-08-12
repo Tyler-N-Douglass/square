@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+ <rect width="512" height="512" fill="#2E2E2E"/>
+ <path d="M60 52 H160 V376 H452 V468 H60 Z" fill="#F1F2F2"/>
+ <g fill="#2E2E2E">
+   <rect x="120" y="96" width="40" height="14"/><rect x="136" y="140" width="24" height="14"/>
+   <rect x="120" y="184" width="40" height="14"/><rect x="136" y="228" width="24" height="14"/>
+   <rect x="120" y="272" width="40" height="14"/><rect x="136" y="316" width="24" height="14"/>
+   <rect x="216" y="428" width="14" height="40"/><rect x="260" y="444" width="14" height="24"/>
+   <rect x="304" y="428" width="14" height="40"/><rect x="348" y="444" width="14" height="24"/>
+   <rect x="392" y="428" width="14" height="40"/><rect x="436" y="444" width="14" height="24"/>
+ </g>
+ <!-- bob dropped through the arm, as in the screenshot -->
+ <rect x="249" y="278" width="14" height="76" fill="#F15A22"/>
+ <path d="M256 340 L300 402 L256 486 L212 402 Z" fill="#F15A22"/>
+</svg>
