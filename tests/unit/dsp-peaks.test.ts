@@ -80,7 +80,7 @@ describe('bipolar event detection (step 6)', () => {
   it('a tiny opposite ripple cannot steal a real lobe pairing', () => {
     // Two fasteners: full bipolar pairs must win over cross-pairing.
     const sig = dogSignal(400, [120, 280], 5, 13, 0.08, 5);
-    const events = detectBipolarEvents(sig, { sigma: 0.08, maxPairGap: 45, minSeparation: 26 });
+    const { events } = detectLikePipeline(sig);
     expect(events).toHaveLength(2);
     expect(Math.abs(events[0]!.zeroCrossIndex - 120)).toBeLessThan(3);
     expect(Math.abs(events[1]!.zeroCrossIndex - 280)).toBeLessThan(3);
@@ -89,7 +89,7 @@ describe('bipolar event detection (step 6)', () => {
   it('zero crossing lands at the fastener; amplitude extremum lands one lobe-sigma off (step 6b)', () => {
     const lobe = 13;
     const sig = dogSignal(300, [150], 5, lobe, 0.05, 9);
-    const events = detectBipolarEvents(sig, { sigma: 0.05, maxPairGap: 45, minSeparation: 26 });
+    const { events } = detectLikePipeline(sig);
     expect(events).toHaveLength(1);
     const ev = events[0]!;
     expect(Math.abs(ev.zeroCrossIndex - 150)).toBeLessThan(2);
@@ -100,7 +100,7 @@ describe('bipolar event detection (step 6)', () => {
 
   it('respects polarity: a flipped signature (−then+) still resolves', () => {
     const sig = dogSignal(200, [100], -4, 13, 0.05, 11);
-    const events = detectBipolarEvents(sig, { sigma: 0.05, maxPairGap: 45, minSeparation: 26 });
+    const { events } = detectLikePipeline(sig);
     expect(events).toHaveLength(1);
     expect(Math.abs(events[0]!.zeroCrossIndex - 100)).toBeLessThan(2);
   });
@@ -115,10 +115,10 @@ describe('bipolar event detection (step 6)', () => {
     expect(Math.abs(events[0]!.zeroCrossIndex - 105)).toBeLessThan(8);
   });
 
-  it('below-threshold noise produces no events at k=3.5', () => {
+  it('band-limited noise alone produces no events at k=3.5', () => {
     const gauss = gaussian(mulberry32(31));
     const sig = Array.from({ length: 400 }, () => 0.1 * gauss());
-    const events = detectBipolarEvents(sig, { sigma: 0.1, maxPairGap: 45, minSeparation: 26 });
+    const { events } = detectLikePipeline(sig);
     expect(events).toHaveLength(0);
   });
 
