@@ -20,7 +20,12 @@ No environment variables, no API keys, no build secrets. The `Permissions-Policy
 `netlify.toml` is what lets the browser expose the sensors — if sensors are dead on the deployed
 site and fine locally, check that header first.
 
-<!-- DEPLOY-URL -->
+**Deploy status:** not yet live. This build environment's network policy blocks Netlify's
+upload endpoints (verified: CONNECT 403 at the egress proxy for `api.netlify.com` and the MCP
+upload host), so the deploy could not be performed from inside the build session. Either path
+above works from any normal machine — or connect this repo in the Netlify UI (pick branch
+`claude/ultrathink-build-kit-setup-v0ooqv` or merge it first); the committed `netlify.toml`
+needs no configuration. After deploying, replace this block with the live URL.
 
 ## Raw magnetometer on Android (Tier A / FIELD)
 

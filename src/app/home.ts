@@ -86,19 +86,23 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     const label = document.createElement('div');
     label.className = 'replaypanel__label';
     label.textContent = `REPLAY · ${t.id}${t.synthetic ? ' · SYNTHETIC' : ''}`;
+    // Raw signal trace, not a qualified measurement (H-03): unit comes from
+    // the trace itself, styling is not .measured, and the caption says where
+    // qualification happens. SCAN attaches noise floor and confidence.
+    const unit = t.units.mag === 'deg' ? '°' : 'µT';
     const value = document.createElement('div');
-    value.className = 'measured hud replaypanel__value';
+    value.className = 'derived hud replaypanel__value';
     value.setAttribute('aria-live', 'off');
     value.textContent = '—';
     const sub = document.createElement('div');
     sub.className = 'replaypanel__sub';
-    sub.textContent = `${t.device.magTier} tier · ${t.hz} Hz · ${t.note}`;
+    sub.textContent = `${t.device.magTier} tier · ${t.hz} Hz · raw signal — open SCAN to qualify it · ${t.note}`;
     panel.append(label, value, sub);
     wrap.append(panel);
 
     const src = new ReplayMagSource(t, { speed: 1, loop: true });
     const write = rafWriter<string>((s) => { value.textContent = s; });
-    const unsub = src.subscribe((s) => write(`${s.mag.toFixed(2)} µT`));
+    const unsub = src.subscribe((s) => write(`${s.mag.toFixed(2)} ${unit}`));
     void src.start();
     stopReplay = () => { unsub(); src.stop(); };
   }

@@ -211,3 +211,20 @@ test applies to SCAN, where the corpus exists.
 
 **Consequences.** All rulings encoded in code or tests where they bite; no open contract drift
 between the five Phase 2 deliveries.
+
+## ADR-014 — Deploy executed as hand-off, not from the build container
+
+**Context.** SPEC §11/§13 call for a Netlify deploy at Gate 0 and Gate 4. The Netlify MCP
+connection authenticates and reads fine (account verified, no existing "square" site), but its
+only deploy mechanism uploads a zip from the build container to `netlify-mcp.netlify.app`, and
+this environment's network policy refuses CONNECT to that host and to `api.netlify.com`
+(verified 403 at the egress proxy, not at Netlify). No Netlify token exists container-side.
+
+**Decision.** Ship the deploy as a zero-config hand-off instead of pretending: `netlify.toml`
+committed and correct, README carries the two-line Drop path and the connect-the-repo path plus
+an explicit "not yet live" status block to be replaced with the URL. The offline/PWA behavior
+was verified against the built artifact locally (`vite preview` + SW precache inspection).
+
+**Consequences.** DoD line "Deployed to Netlify; URL in README.md" is NOT met inside this
+session and is stated as such everywhere it matters (README, PLAN, ACCURACY scope notes) —
+degrade visibly, never silently (§15.4).

@@ -29,11 +29,39 @@ export function getProfile(): CalibrationProfile {
   return cached;
 }
 
-/** Merge-update the profile; bumps updatedAt; notifies subscribers. */
+type CalPart = 'mag' | 'sensorOffset' | 'levelBias' | 'lens';
+const PARTS: readonly CalPart[] = ['mag', 'sensorOffset', 'levelBias', 'lens'];
+
+/** Per-part timestamps ride alongside the profile (H-05): a lens calibration
+ * must not make a months-old mag calibration read fresh. Additive — stored in
+ * the same JSON blob, absent on old profiles. */
+interface StoredProfile extends CalibrationProfile {
+  updatedAtByPart?: Partial<Record<CalPart, number>>;
+}
+
+let lastPersistOk = true;
+
+/** False when the most recent updateProfile could not write durable storage
+ * (private mode, quota). Consumers append the session-only notice (H-04). */
+export function persistenceOk(): boolean {
+  return lastPersistOk;
+}
+
+/** Merge-update the profile; stamps updatedAt globally and per touched part;
+ * notifies subscribers. Check persistenceOk() before claiming "stored". */
 export function updateProfile(patch: Partial<Omit<CalibrationProfile, 'deviceKey'>>): CalibrationProfile {
-  const next: CalibrationProfile = { ...getProfile(), ...patch, deviceKey: deviceKey(), updatedAt: Date.now() };
+  const prev = getProfile() as StoredProfile;
+  const now = Date.now();
+  const byPart: Partial<Record<CalPart, number>> = { ...prev.updatedAtByPart };
+  for (const part of PARTS) if (part in patch) byPart[part] = now;
+  const next: StoredProfile = { ...prev, ...patch, deviceKey: deviceKey(), updatedAt: now, updatedAtByPart: byPart };
   cached = next;
-  try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(KEY, JSON.stringify(next));
+    lastPersistOk = true;
+  } catch {
+    lastPersistOk = false; // visible via persistenceOk(); never claim "stored"
+  }
   for (const fn of listeners) fn(next);
   return next;
 }
@@ -50,10 +78,13 @@ export function subscribeProfile(fn: Listener): () => void {
   return () => listeners.delete(fn);
 }
 
-/** Age of one calibration block in ms, or null when it has never been run. */
+/** Age of one calibration block in ms, or null when it has never been run.
+ * Prefers the per-part stamp (H-05); falls back to the global one only for
+ * profiles written before per-part stamps existed. */
 export function calibrationAgeMs(profile: CalibrationProfile, part: 'mag' | 'sensorOffset' | 'levelBias' | 'lens'): number | null {
   if (!profile[part]) return null;
-  return Math.max(0, Date.now() - profile.updatedAt);
+  const stamp = (profile as StoredProfile).updatedAtByPart?.[part] ?? profile.updatedAt;
+  return Math.max(0, Date.now() - stamp);
 }
 
 /**
