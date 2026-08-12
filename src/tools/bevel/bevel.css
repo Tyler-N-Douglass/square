@@ -1,0 +1,124 @@
+/* BEVEL tool — A4 territory. Flat, heavy, high contrast; radius 0; the only
+   orange is a live measured value (.measured via number.ts). */
+
+.bevel { padding: calc(var(--grid) * 2); max-width: 760px; margin: 0 auto; }
+.bevel__head { display: flex; align-items: baseline; gap: calc(var(--grid) * 2); flex-wrap: wrap; }
+.bevel__name { font-size: clamp(2rem, 8vw, 3rem); margin: 0; }
+
+.practicebadge {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  font-size: 0.9375rem;
+  padding: 4px 10px;
+  border: 3px solid var(--type);
+  color: var(--type);
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.bevel section { margin-top: calc(var(--grid) * 3); border-top: var(--rule-w) solid var(--rule); padding-top: calc(var(--grid) * 2); }
+.bevel h2 { font-size: 1.25rem; margin: 0 0 var(--grid); }
+.bevel__hint { font-size: 0.875rem; color: var(--type-2); max-width: 60ch; margin: var(--grid) 0 0; }
+
+/* mode tabs */
+.bevel__modes { display: flex; gap: var(--grid); flex-wrap: wrap; margin-top: calc(var(--grid) * 2); }
+.bevel__modes .btn[aria-pressed="true"] { background: var(--type); color: var(--ground); }
+
+/* capture state — the big word, arm's-length legible */
+.bevel__state {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: clamp(2rem, 10vw, 3.5rem);
+  margin: calc(var(--grid) * 2) 0;
+  min-height: 1.2em;
+}
+.bevel__state--hold { color: var(--green); }
+.bevel__substate { font-size: 1rem; color: var(--type-2); min-height: 1.4em; }
+.bevel__faces { display: flex; gap: calc(var(--grid) * 3); flex-wrap: wrap; margin: var(--grid) 0; font-size: 0.9375rem; }
+
+/* drift budget countdown — 3D mode */
+.bevel__drift {
+  font-family: var(--font-hud);
+  font-feature-settings: "tnum" 1;
+  font-size: 1.5rem;
+  margin: var(--grid) 0;
+}
+.bevel__drift--late { color: var(--red); }
+
+/* refusal — the explanation, never the number */
+.bevel__refusal {
+  margin: calc(var(--grid) * 2) 0;
+  border: var(--rule-w) solid var(--red);
+  color: var(--red);
+  padding: calc(var(--grid) * 1.5) calc(var(--grid) * 2);
+  font-size: 1.0625rem;
+  max-width: 70ch;
+}
+
+/* saw card — SPEC §4.5.2. The method line is the loudest thing on it. */
+.sawcard { border: var(--rule-w) solid var(--type); padding: calc(var(--grid) * 2); margin-top: calc(var(--grid) * 2); background: var(--surface); }
+.sawcard__method {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: clamp(1.5rem, 6vw, 2.25rem);
+  background: var(--type);
+  color: var(--ground);
+  padding: var(--grid) calc(var(--grid) * 1.5);
+  margin: 0 0 calc(var(--grid) * 2);
+}
+.sawcard__numbers { display: flex; gap: calc(var(--grid) * 4); flex-wrap: wrap; }
+.sawcard__num { display: flex; flex-direction: column; gap: 2px; }
+.sawcard__num .label { font-family: var(--font-ui); font-size: 0.875rem; color: var(--type-2); }
+.sawcard__num .derived, .sawcard__num .num--derived .num__reading { font-size: max(var(--hud-min), 4rem); line-height: 1.05; }
+.sawcard__lines { list-style: none; margin: calc(var(--grid) * 2) 0 0; padding: 0; }
+.sawcard__lines li { padding: calc(var(--grid) / 1.5) 0; border-top: 2px solid var(--rule); font-size: 1rem; line-height: 1.45; }
+.sawcard__lines li.sawcard__test { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* inputs shared with layout look */
+.bevel__form { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: calc(var(--grid) * 2); }
+.bevel__field { display: flex; flex-direction: column; gap: calc(var(--grid) / 2); }
+.bevel__field label { font-size: 0.875rem; color: var(--type-2); }
+.bevel__field input, .bevel__field select {
+  font-family: var(--font-hud);
+  font-feature-settings: "tnum" 1;
+  font-size: 1.25rem;
+  min-height: var(--tap);
+  padding: 0 var(--grid);
+  border: 2px solid var(--type);
+  background: var(--surface);
+  color: var(--type);
+}
+.bevel__parse-error { color: var(--red); font-size: 0.875rem; min-height: 1.2em; }
+.bevel__springrow, .bevel__cornerrow { display: flex; gap: var(--grid); flex-wrap: wrap; margin-top: var(--grid); }
+.bevel__springrow .btn, .bevel__cornerrow .btn { font-size: 0.875rem; }
+
+/* common angle table */
+.angletable { border-collapse: collapse; width: 100%; }
+.angletable th { font-size: 0.8125rem; color: var(--type-2); text-align: right; border-bottom: var(--rule-w) solid var(--type); padding: var(--grid); }
+.angletable td { font-family: var(--font-hud); font-feature-settings: "tnum" 1; font-size: 1.125rem; text-align: right; border-bottom: 2px solid var(--rule); padding: var(--grid); white-space: nowrap; }
+.angletable td:first-child, .angletable th:first-child { text-align: left; }
+.angletable tr[data-pinned="true"] td { border-bottom: var(--rule-w) solid var(--type); }
+.angletable .btn { font-size: 0.8125rem; min-height: var(--tap); }
+
+/* capability + caveat lines */
+.bevel__capline { font-size: 0.875rem; color: var(--type-2); max-width: 65ch; }
+
+/* log pickers (corner measurements) */
+.cornerlist { list-style: none; margin: var(--grid) 0; padding: 0; display: flex; flex-direction: column; gap: var(--grid); }
+.cornerlist li { display: flex; align-items: center; gap: calc(var(--grid) * 2); flex-wrap: wrap; border: 2px solid var(--rule); padding: var(--grid); }
+
+/* demo panel */
+.bevel__demos { display: flex; gap: var(--grid); flex-wrap: wrap; }
+.demopanel { border: var(--rule-w) solid var(--type); padding: calc(var(--grid) * 2); margin-top: var(--grid); }
+.demopanel__label {
+  display: inline-block;
+  font-family: var(--font-hud);
+  font-size: 0.8125rem;
+  border: 2px solid var(--type);
+  padding: 2px 8px;
+  margin-bottom: var(--grid);
+}
+.demopanel__narration { list-style: none; margin: 0; padding: 0; }
+.demopanel__narration li { font-size: 1rem; line-height: 1.5; padding: calc(var(--grid) / 2) 0; max-width: 70ch; }

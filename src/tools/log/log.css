@@ -1,0 +1,252 @@
+/* LOG — review surface styling (A8). Draplin rules: flat, heavy, high
+   contrast; no gradients, no shadows, no motion. Orange never appears here
+   except through A7's .measured readings — a logged value keeps the same
+   provenance styling it had live. Includes the @media print job sheet
+   (SPEC §4.7: canvas → print stylesheet). */
+
+.log {
+  padding: calc(var(--grid) * 2);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* ---------- session-only fallback notice (SPEC §15.4) ---------- */
+
+.log__notice {
+  border: var(--rule-w) solid var(--red);
+  color: var(--red);
+  padding: var(--grid) calc(var(--grid) * 1.5);
+  font-size: 0.9375rem;
+  margin-bottom: calc(var(--grid) * 2);
+}
+
+/* ---------- view switcher ---------- */
+
+.log__views {
+  display: flex;
+  gap: 0;
+  margin-bottom: calc(var(--grid) * 2);
+}
+.log__views .btn { flex: 1 1 0; }
+.log__views .btn + .btn { border-left-width: 0; }
+
+/* ---------- entry list ---------- */
+
+.log__list { display: flex; flex-direction: column; gap: calc(var(--grid) * 2); }
+.log__empty {
+  font-family: var(--font-prose);
+  color: var(--type-2);
+  border: var(--rule-w) dashed var(--rule);
+  padding: calc(var(--grid) * 3);
+}
+.log__group-head {
+  font-size: 1.125rem;
+  color: var(--type-2);
+  border-bottom: var(--rule-w) solid var(--rule);
+  padding-bottom: calc(var(--grid) / 2);
+  margin-top: var(--grid);
+}
+
+.log-entry {
+  border: var(--rule-w) solid var(--type);
+  background: var(--surface);
+}
+.log-entry__head {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--grid) * 1.5);
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--grid) calc(var(--grid) * 1.5);
+  background: none;
+  border: none;
+  color: var(--type);
+  text-align: left;
+  cursor: pointer;
+}
+.log-entry__kind {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.9375rem;
+  border: 2px solid currentColor;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.log-entry__when {
+  font-family: var(--font-hud);
+  font-feature-settings: "tnum" 1;
+  font-size: 0.8125rem;
+  color: var(--type-2);
+  white-space: nowrap;
+}
+.log-entry__project {
+  font-size: 0.8125rem;
+  color: var(--type-2);
+  border: 1px dotted var(--gray);
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.log-entry__value { margin-left: auto; }
+.log-entry__thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border: 2px solid var(--type);
+  flex: 0 0 auto;
+}
+.log-entry__note {
+  font-family: var(--font-prose);
+  font-size: 0.9375rem;
+  color: var(--type-2);
+  padding: 0 calc(var(--grid) * 1.5) var(--grid);
+  margin: 0;
+}
+
+/* ---------- entry detail ---------- */
+
+.log-entry__detail {
+  border-top: var(--rule-w) solid var(--rule);
+  padding: calc(var(--grid) * 1.5);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--grid) * 1.5);
+}
+.log-entry__photo { max-width: 100%; border: 2px solid var(--type); }
+.log-prov { display: flex; flex-direction: column; gap: calc(var(--grid) / 2); }
+.log-prov__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--grid);
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: calc(var(--grid) / 2);
+}
+.log-prov__label { color: var(--type-2); }
+.log-prov__val { font-family: var(--font-hud); font-feature-settings: "tnum" 1; text-align: right; }
+.log-prov__val--bad { color: var(--red); }
+
+.log-entry__edit { display: flex; flex-direction: column; gap: var(--grid); }
+.log-entry__edit label {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--grid) / 2);
+  font-size: 0.8125rem;
+  color: var(--type-2);
+}
+.log-entry__edit input {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  min-height: var(--tap);
+  padding: 0 var(--grid);
+  border: 2px solid var(--type);
+  background: var(--ground);
+  color: var(--type);
+}
+.log-entry__actions { display: flex; gap: var(--grid); flex-wrap: wrap; }
+.log-entry__delete { border-color: var(--red); color: var(--red); }
+
+/* ---------- data section: export / import / print ---------- */
+
+.log__data,
+.log__danger {
+  margin-top: calc(var(--grid) * 3);
+  border: var(--rule-w) solid var(--type);
+  padding: calc(var(--grid) * 2);
+  background: var(--surface);
+}
+.log__section-head { font-size: 1.25rem; margin-bottom: var(--grid); }
+.log__data-row { display: flex; gap: var(--grid); flex-wrap: wrap; margin-top: var(--grid); }
+.log__fine {
+  font-family: var(--font-prose);
+  font-size: 0.8125rem;
+  color: var(--type-2);
+  margin: var(--grid) 0 0;
+  max-width: 60ch;
+}
+.log__promise { font-weight: 700; color: var(--type); }
+.log__status { font-size: 0.875rem; margin-top: var(--grid); }
+.log__status--bad { color: var(--red); }
+
+/* ---------- delete-all: two-step, no accidental one-tap wipe ---------- */
+
+.log__danger { border-color: var(--red); }
+.log__deleteall { border-color: var(--red); color: var(--red); background: transparent; }
+.log__confirm { display: flex; flex-direction: column; gap: var(--grid); }
+.log__confirm-erase { background: var(--red); border-color: var(--red); color: var(--white); }
+
+/* ---------- undo snackbar (SPEC §7B.9) ---------- */
+
+.log-snackbar {
+  position: fixed;
+  left: calc(var(--grid) * 2);
+  right: calc(var(--grid) * 2);
+  bottom: calc(var(--tap) + var(--grid) * 6 + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--grid) * 2);
+  background: var(--type);
+  color: var(--ground);
+  padding: var(--grid) calc(var(--grid) * 1.5);
+  border: 2px solid var(--type);
+}
+.log-snackbar__msg { flex: 1 1 auto; font-size: 0.9375rem; }
+.log-snackbar__undo {
+  background: transparent;
+  color: inherit;
+  border: 2px solid currentColor;
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 calc(var(--grid) * 2);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* ---------- print: the job sheet (SPEC §4.7) ----------
+   Screen chrome disappears; entries become clean per-entry blocks under a
+   job-sheet header. These rules only exist inside @media print, so screen
+   rendering of other tools is untouched. */
+
+.log__printhead { display: none; }
+
+@media print {
+  .topbar,
+  .bottombar,
+  .capbanner,
+  .coach,
+  .log-snackbar,
+  .log__notice,
+  .log__views,
+  .log__data,
+  .log__danger,
+  .log-entry__edit,
+  .log-entry__actions {
+    display: none !important;
+  }
+  .log { max-width: none; padding: 0; }
+  .log__printhead {
+    display: block;
+    border-bottom: 3px solid #000;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+  }
+  .log__printhead h1 { font-size: 18pt; margin: 0; }
+  .log__printhead p { font-size: 9pt; margin: 2px 0 0; }
+  .log__list { display: block; }
+  .log-entry {
+    break-inside: avoid;
+    border: 1px solid #000;
+    margin-bottom: 8px;
+    background: #fff;
+    color: #000;
+  }
+  .log-entry__detail { display: flex !important; border-top: 1px solid #000; }
+  .log-entry__head { min-height: 0; padding: 6px 8px; color: #000; }
+  .log-entry__thumb { border-color: #000; }
+  /* live-value orange means nothing on paper; print in ink */
+  .log .measured { color: #000 !important; }
+}
