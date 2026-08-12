@@ -13,7 +13,7 @@ import {
   solveLinear,
   UNIT_SQUARE,
 } from '../../src/geometry/homography';
-import { mat3Inverse } from '../../src/geometry/mat';
+import { mat3Det, mat3Inverse } from '../../src/geometry/mat';
 import { mulberry32 } from '../../src/geometry/montecarlo';
 
 /** Seeded random convex quad: perturbed rectangle corners, resampled until convex. */
@@ -46,14 +46,14 @@ function randomConvexQuad(rand: () => number): [Px, Px, Px, Px] {
 
 describe('solveLinear (own Gaussian elimination with partial pivoting)', () => {
   it('solves a known system exactly', () => {
-    // 2x + y = 5; x + 3y − z = 4; −x + 2z = 3  →  x=2, y=1, z=2.5? check: −2+5=3 ✓
+    // A·(1,2,3) with A = [[2,1,0],[1,3,-1],[-1,0,2]] gives b = (4,4,5).
     const a = Float64Array.from([2, 1, 0, 1, 3, -1, -1, 0, 2]);
-    const b = Float64Array.from([5, 4, 3]);
+    const b = Float64Array.from([4, 4, 5]);
     const res = solveLinear(a, 3, b);
     expect(res).not.toBeNull();
-    expect(res!.x[0]).toBeCloseTo(2, 12);
-    expect(res!.x[1]).toBeCloseTo(1, 12);
-    expect(res!.x[2]).toBeCloseTo(2.5, 12);
+    expect(res!.x[0]).toBeCloseTo(1, 12);
+    expect(res!.x[1]).toBeCloseTo(2, 12);
+    expect(res!.x[2]).toBeCloseTo(3, 12);
     expect(res!.minPivot).toBeGreaterThan(0);
     expect(res!.maxPivot).toBeGreaterThanOrEqual(res!.minPivot);
   });
@@ -101,12 +101,14 @@ describe('homography: unit square → quad (normalized DLT)', () => {
   it('interpolates the four corners exactly and inverts cleanly, over 500 seeded quads', () => {
     const rand = mulberry32(707);
     let minCondition = Infinity;
+    let minDet = Infinity;
     for (let trial = 0; trial < 500; trial++) {
       const quad = randomConvexQuad(rand);
       const res = homographyUnitSquareToQuad(quad);
       expect(res.ok, `trial ${trial} failed: ${res.ok ? '' : res.message}`).toBe(true);
       if (!res.ok) continue;
       minCondition = Math.min(minCondition, res.conditionProxy);
+      minDet = Math.min(minDet, Math.abs(mat3Det(res.h)));
       const scale = Math.max(...quad.map((p) => Math.max(Math.abs(p.x), Math.abs(p.y))));
       for (let i = 0; i < 4; i++) {
         const mapped = applyHomography(res.h, UNIT_SQUARE[i]!);
@@ -125,7 +127,12 @@ describe('homography: unit square → quad (normalized DLT)', () => {
       }
     }
     // eslint-disable-next-line no-console
-    console.log(`homography min condition proxy over 500 random quads: ${minCondition.toExponential(2)}`);
+    console.log(
+      `homography over 500 random quads — min condition proxy: ${minCondition.toExponential(2)}, ` +
+        `min |det| (unit Frobenius): ${minDet.toExponential(2)}`,
+    );
+    // Valid pixel-scale quads sit far above the rank-deficiency floor (H_DET_MIN = 1e-10).
+    expect(minDet).toBeGreaterThan(1e-8);
   });
 
   it('preserves lines: the image of a source-edge midpoint lies on the image edge', () => {

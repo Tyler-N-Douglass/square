@@ -86,13 +86,26 @@ export function qFromEuler(e: EulerZYX): Quat {
  *   pitch = asin(−R₂₀) = asin(2(wy − xz))   (argument clamped to [−1,1])
  *   roll  = atan2(R₂₁, R₂₂) = atan2(2(yz + wx), 1 − 2(x² + y²))
  *   yaw   = atan2(R₁₀, R₀₀) = atan2(2(xy + wz), 1 − 2(y² + z²))
- * At gimbal lock (|pitch| = 90°) yaw and roll are not separable; the returned
- * pair still reconstructs the same rotation through qFromEuler.
+ * At gimbal lock (|pitch| = 90°) yaw and roll are not separable — only their
+ * difference (at +90°) or sum (at −90°) is defined, and the generic atan2
+ * expressions degenerate to atan2(0,0). The lock branch below assigns
+ * roll = 0 and puts the whole combined angle into yaw, so the returned
+ * triple still reconstructs the same rotation through qFromEuler:
+ *   pitch = +90°: q ∝ (cos Δ, −sin Δ, cos Δ, sin Δ)·(√2/2), Δ = (yaw − roll)/2
+ *     ⇒ yaw − roll = 2·atan2(−x, w)
+ *   pitch = −90°: q ∝ (cos Σ, sin Σ, −cos Σ, sin Σ)·(√2/2), Σ = (yaw + roll)/2
+ *     ⇒ yaw + roll = 2·atan2(x, w)
  */
 export function qToEuler(q: Quat): EulerZYX {
   const n = qNormalize(q);
   const s = 2 * (n.w * n.y - n.x * n.z);
-  const pitchRad = Math.asin(Math.min(1, Math.max(-1, s)));
+  if (s >= 1 - 1e-12) {
+    return { yawRad: 2 * Math.atan2(-n.x, n.w), pitchRad: Math.PI / 2, rollRad: 0 };
+  }
+  if (s <= -(1 - 1e-12)) {
+    return { yawRad: 2 * Math.atan2(n.x, n.w), pitchRad: -Math.PI / 2, rollRad: 0 };
+  }
+  const pitchRad = Math.asin(s);
   const rollRad = Math.atan2(2 * (n.y * n.z + n.w * n.x), 1 - 2 * (n.x * n.x + n.y * n.y));
   const yawRad = Math.atan2(2 * (n.x * n.y + n.w * n.z), 1 - 2 * (n.y * n.y + n.z * n.z));
   return { yawRad, pitchRad, rollRad };

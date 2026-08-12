@@ -2,7 +2,7 @@
  "schema": "square.trace/1",
  "id": "tierB-heading-proxy",
  "synthetic": true,
- "note": "Generated: Tier B heading proxy — samples carry the signed heading residual (deg) in x (y=z=0), gyro drift plus 0.28deg noise, two fasteners 16in on centre with the bipolar S-curve. SNR clears the STRONG bar but PROXY caps at LIKELY (ADR-005): the cap is the assertion.",
+ "note": "Generated: Tier B heading proxy — samples carry the signed heading residual (deg) in x (y=z=0), gyro drift plus 0.25deg noise, three fasteners 16in on centre with the bipolar S-curve. SNR clears the STRONG bar but PROXY caps at LIKELY (ADR-005): the cap is the assertion.",
  "device": {
   "platform": "synthetic",
   "magTier": "PROXY"
@@ -2433,8 +2433,9 @@
  ],
  "expected": {
   "peaks_in": [
-   5.99,
-   21.99
+   3,
+   19.06,
+   35.02
   ],
   "tolerance_in": 0.75,
   "pitch_in": 16,

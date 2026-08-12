@@ -67,9 +67,9 @@ to show at the end ("the suite asserts these peaks — you watched them found").
 
 The corpus link is a test: `tests/unit/guidance-demo-corpus.test.ts` reads
 `tests/fixtures/` from disk and fails for any `DemoSpec.fixtureId` without a
-committed file. It is red while A2's corpus files are still landing
-(`metal-stud-hot`, `magsafe-attached`) and goes green with no code change when
-they do. Do not skip it; do not stub fixtures to appease it.
+committed file — renamed, deleted, or never landed. As of Phase 1 all seven
+corpus fixtures exist and the test is green end to end. Do not skip it; do
+not stub fixtures to appease it.
 
 ## How a tool registers its guide + DEMO in Phase 2 (the how-to)
 

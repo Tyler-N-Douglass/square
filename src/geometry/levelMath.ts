@@ -115,7 +115,7 @@ export function drainSlopeCheck(inPerFt: number): DrainCheck {
     return {
       state: 'over',
       inPerFt,
-      message: 'Over ½″ per foot — liquids outrun solids above the band. Flatten the run or plan a vertical drop.',
+      message: 'Over ½″ per foot — liquids outrun solids above the band. Keep drain lines between ¼″ and ½″ per foot, or plan a vertical drop.',
     };
   }
   return {

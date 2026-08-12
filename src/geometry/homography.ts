@@ -20,7 +20,7 @@
  * paths).
  */
 import type { Mat3 } from '../types';
-import { mat3Mul } from './mat';
+import { mat3Det, mat3Mul } from './mat';
 import type { Px } from './angleSolver';
 
 /**
@@ -92,6 +92,9 @@ export type HomographyResult =
 
 /** Below this pivot ratio the normalized DLT system is treated as singular. */
 export const H_CONDITION_MIN = 1e-10;
+
+/** Below this |det| (H at unit Frobenius norm) the homography is treated as rank-deficient. */
+export const H_DET_MIN = 1e-10;
 
 interface Normalization { t: Mat3; tInv: Mat3; pts: Px[] }
 

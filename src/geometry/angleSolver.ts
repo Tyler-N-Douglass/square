@@ -62,19 +62,22 @@ const refuse = (message: string): QuadAngleResult => ({
   message,
 });
 
-export function cornerAngleFromQuad(
-  quad: [Px, Px, Px, Px],
-  k: Intrinsics,
-): QuadAngleResult {
-  // --- 0. Inputs are numbers, the camera is plausible. -------------------
+export type QuadValidation = { ok: true } | { ok: false; message: string };
+
+/**
+ * Shared quad-shape gate, also used by intrinsics.calibrateFromSheet: a quad
+ * that fails any of these is degenerate for EVERY planar solve, not just the
+ * corner angle. Checks, in order: finite coordinates, minimum pixel size,
+ * no merged vertices, no near-collinear vertex, convex + consistently
+ * ordered, non-vanishing normalized area.
+ */
+export function validateQuadGeometry(quad: readonly [Px, Px, Px, Px]): QuadValidation {
   for (const p of quad) {
-    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) return refuse('quad has non-finite coordinates');
-  }
-  if (!Number.isFinite(k.fPx) || k.fPx <= 0 || !Number.isFinite(k.cx) || !Number.isFinite(k.cy)) {
-    return refuse('intrinsics are invalid (fPx must be a positive pixel count)');
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+      return { ok: false, message: 'quad has non-finite coordinates' };
+    }
   }
 
-  // --- 1. Quad shape validation. -----------------------------------------
   // Edges in traversal order P0→P1→P2→P3→P0.
   const ex = [0, 0, 0, 0];
   const ey = [0, 0, 0, 0];
@@ -91,10 +94,10 @@ export function cornerAngleFromQuad(
     minEdge = Math.min(minEdge, elen[i]!);
   }
   if (maxEdge < QUAD_LIMITS.minQuadPx) {
-    return refuse(`quad is too small to measure (longest edge ${maxEdge.toFixed(1)} px)`);
+    return { ok: false, message: `quad is too small to measure (longest edge ${maxEdge.toFixed(1)} px)` };
   }
   if (minEdge < QUAD_LIMITS.minEdgeRatio * maxEdge) {
-    return refuse('two marked corners nearly coincide');
+    return { ok: false, message: 'two marked corners nearly coincide' };
   }
 
   // Vertex turn (cross product of incoming and outgoing edge) at each corner:
@@ -106,13 +109,13 @@ export function cornerAngleFromQuad(
     const cross = ex[prev]! * ey[i]! - ey[prev]! * ex[i]!;
     const sinAngle = Math.abs(cross) / (elen[prev]! * elen[i]!);
     if (sinAngle < QUAD_LIMITS.minVertexSin) {
-      return refuse('marked corners are nearly collinear — no usable second dimension');
+      return { ok: false, message: 'marked corners are nearly collinear — no usable second dimension' };
     }
     if (cross > 0) pos++;
     else neg++;
   }
   if (pos !== 4 && neg !== 4) {
-    return refuse('quad is self-intersecting or non-convex — check the corner order');
+    return { ok: false, message: 'quad is self-intersecting or non-convex — check the corner order' };
   }
 
   // Shoelace area, normalized by the longest edge.
@@ -124,8 +127,23 @@ export function cornerAngleFromQuad(
   }
   const normArea = Math.abs(area2 / 2) / (maxEdge * maxEdge);
   if (normArea < QUAD_LIMITS.minNormalizedArea) {
-    return refuse('quad area is degenerate — the four marks are nearly a line');
+    return { ok: false, message: 'quad area is degenerate — the four marks are nearly a line' };
   }
+  return { ok: true };
+}
+
+export function cornerAngleFromQuad(
+  quad: [Px, Px, Px, Px],
+  k: Intrinsics,
+): QuadAngleResult {
+  // --- 0. Inputs are numbers, the camera is plausible. -------------------
+  if (!Number.isFinite(k.fPx) || k.fPx <= 0 || !Number.isFinite(k.cx) || !Number.isFinite(k.cy)) {
+    return refuse('intrinsics are invalid (fPx must be a positive pixel count)');
+  }
+
+  // --- 1. Quad shape validation. -----------------------------------------
+  const shape = validateQuadGeometry(quad);
+  if (!shape.ok) return refuse(shape.message);
 
   // --- 2. Homography, with conditioning. ---------------------------------
   const hres = homographyUnitSquareToQuad(quad);

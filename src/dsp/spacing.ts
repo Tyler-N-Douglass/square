@@ -19,8 +19,13 @@ export const CANDIDATE_PITCHES_IN: readonly number[] = [16.0, 24.0, 12.0, 19.2, 
 /** Peaks must land within this of the lattice to count as explained. */
 export const LATTICE_TOLERANCE_IN = 0.75;
 
-/** Median nearest-neighbor spacing below this (with ≥4 peaks) reads as dense/irregular. */
-export const DENSE_SPACING_IN = 6.0;
+/**
+ * Median nearest-neighbor spacing below this (with ≥4 peaks) reads as
+ * dense/irregular. The tightest real stud pitch is 12″ OC, so a horizontal
+ * sweep never meets stud fasteners closer than 12″ apart on median — a
+ * median under 8″ is plaster nails or metal-stud clutter, not a lattice.
+ */
+export const DENSE_SPACING_IN = 8.0;
 
 export interface LatticeFit {
   pitchIn: number;

@@ -163,7 +163,7 @@ const FIXTURES = [
     noise: 0.55,
     driftAmplitude: 1.0,
     expected: {
-      peaks_in: [3.52, 27.47],
+      peaks_in: [3.34, 27.57],
       tolerance_in: 0.75,
       pitch_in: 24.0,
       confidence: 'LIKELY',
@@ -196,30 +196,36 @@ const FIXTURES = [
     id: 'plaster-lath-dense',
     seed: 5150,
     note:
-      'Generated: plaster over lath — dense irregular nail pattern (8 fasteners, 1.8-4.5in ' +
-      'apart, varied amplitudes). Pipeline finds a dense peak set, refuses to claim a stud ' +
-      'lattice (pitch null) and caps confidence at POSSIBLE. Expected peak list is the ' +
-      'committed pipeline output, not the ground-truth nail positions — overlapping lobes ' +
-      'shift and merge neighbors; that inaccuracy is the point of the fixture.',
+      'Generated: plaster over lath — 12 nails over 40in, depths varied so 6 read strong and ' +
+      '6 faint. Pipeline detects 5 of the strong ones (median spacing ~6in — no stud lattice ' +
+      'is that dense), refuses the pitch and caps confidence at POSSIBLE. Expected peak list ' +
+      'is the committed pipeline output, not the ground-truth nail positions: the faint ' +
+      'carpet raises the noise floor and one strong nail stays under the bar. That miss is ' +
+      'the point of the fixture.',
     hz: 40,
-    spanIn: 24,
+    spanIn: 40,
     speedInPerS: 3.0,
     fasteners: [
-      // Nail depth varies on plaster, so amplitudes spread 1.4–2.6 µT and
-      // neighbors overlap — the pipeline sees a dense, irregular carpet.
-      { positionIn: 3.1, amplitude: 2.2 },
-      { positionIn: 5.6, amplitude: 1.6 },
-      { positionIn: 7.4, amplitude: 2.5 },
-      { positionIn: 10.9, amplitude: 1.9 },
-      { positionIn: 13.2, amplitude: 2.4 },
-      { positionIn: 15.1, amplitude: 1.4 },
-      { positionIn: 18.4, amplitude: 2.6 },
-      { positionIn: 20.3, amplitude: 1.8 },
+      // Nail depth varies on plaster: deep-driven nails read 3+ µT, the
+      // shallow carpet reads ~1 µT. The pipeline detects the strong ones,
+      // sees an irregular ~5″ median spacing, and refuses the lattice.
+      { positionIn: 3.4, amplitude: 3.4 },
+      { positionIn: 6.0, amplitude: 1.0 },
+      { positionIn: 9.1, amplitude: 3.2 },
+      { positionIn: 11.8, amplitude: 1.2 },
+      { positionIn: 14.3, amplitude: 3.8 },
+      { positionIn: 17.2, amplitude: 0.9 },
+      { positionIn: 21.6, amplitude: 3.3 },
+      { positionIn: 24.5, amplitude: 1.1 },
+      { positionIn: 27.2, amplitude: 3.6 },
+      { positionIn: 30.4, amplitude: 1.0 },
+      { positionIn: 33.9, amplitude: 3.5 },
+      { positionIn: 36.8, amplitude: 1.2 },
     ],
     noise: 0.28,
     driftAmplitude: 0.7,
     expected: {
-      peaks_in: [3.07, 7.24, 10.85, 13.28, 18.36, 20.35],
+      peaks_in: [9.14, 14.23, 21.66, 27.13, 33.95],
       tolerance_in: 0.75,
       pitch_in: null,
       confidence: 'POSSIBLE',
@@ -278,9 +284,9 @@ const FIXTURES = [
     seed: 4401,
     note:
       'Generated: Tier B heading proxy — samples carry the signed heading residual (deg) in x ' +
-      '(y=z=0), gyro drift plus 0.28deg noise, two fasteners 16in on centre with the bipolar ' +
-      'S-curve. SNR clears the STRONG bar but PROXY caps at LIKELY (ADR-005): the cap is the ' +
-      'assertion.',
+      '(y=z=0), gyro drift plus 0.25deg noise, three fasteners 16in on centre with the ' +
+      'bipolar S-curve. SNR clears the STRONG bar but PROXY caps at LIKELY (ADR-005): the ' +
+      'cap is the assertion.',
     tier: 'PROXY',
     hz: 30,
     spanIn: 40,
@@ -293,7 +299,7 @@ const FIXTURES = [
     noise: 0.25,
     driftAmplitude: 1.0,
     expected: {
-      peaks_in: [5.99, 21.99],
+      peaks_in: [3.0, 19.06, 35.02],
       tolerance_in: 0.75,
       pitch_in: 16.0,
       confidence: 'LIKELY',
