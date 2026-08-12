@@ -40,6 +40,7 @@ import {
   fitPeak2D,
   windowAmplitude,
   reversalFromCaptures,
+  levelBiasPatch,
   StillnessCapture,
   evaluateLensResult,
   lensFocalUncertainty,
@@ -700,11 +701,9 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
           surf.textContent = `The surface itself reads ${rev.surfaceDeg.pitchDeg.toFixed(2)}° pitch / ${rev.surfaceDeg.rollDeg.toFixed(2)}° roll — that part belongs to the surface, not the sensor.`;
           resultHost.append(rowP, rowR, surf);
           if (sane) {
-            // CalibrationProfile.levelBias is stored in DEGREES — the unit
-            // contract fixed by A5 in src/tools/level/levelState.ts.
-            updateProfile({
-              levelBias: { pitch: rev.biasDeg.pitchDeg, roll: rev.biasDeg.rollDeg },
-            });
+            // levelBias is stored in DEGREES — unit contract fixed by A5 in
+            // src/tools/level/levelState.ts (levelBiasPatch pins it in tests).
+            updateProfile(levelBiasPatch(rev));
             saveOutcome('levelZero', {
               at: Date.now(),
               pass: true,

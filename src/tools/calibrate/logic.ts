@@ -391,6 +391,15 @@ export function reversalFromCaptures(m1: PitchRollDeg, m2: PitchRollDeg): Revers
   };
 }
 
+/**
+ * The profile patch the reversal routine stores. UNIT CONTRACT:
+ * `CalibrationProfile.levelBias` is DEGREES — fixed by A5 in
+ * src/tools/level/levelState.ts; LEVEL subtracts these values as degrees.
+ */
+export function levelBiasPatch(rev: ReversalResult): { levelBias: { pitch: number; roll: number } } {
+  return { levelBias: { pitch: rev.biasDeg.pitchDeg, roll: rev.biasDeg.rollDeg } };
+}
+
 /* ------------------------------------------------------------------ */
 /* Lens routine gate (§4.3.2)                                          */
 /* ------------------------------------------------------------------ */
