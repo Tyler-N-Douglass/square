@@ -38,6 +38,50 @@ export interface BipolarEvent {
   prominence: number;
   /** prominence / σ. */
   snr: number;
+  /** Normalized correlation against the derivative-of-Gaussian template, [−1, 1]. */
+  shapeScore: number;
+}
+
+/**
+ * Bipolar-shape score: normalized correlation (cosine) between the signal
+ * around a candidate event and a derivative-of-Gaussian template. The
+ * template width starts from the candidate's own lobe spacing but is clamped
+ * to the PHYSICALLY expected lobe sigma (± the honest spread) — band-limited
+ * noise makes narrow smooth ripple pairs that would fool a self-sized
+ * template, but cannot stay coherent across a physically wide window.
+ * Range [−1, 1].
+ */
+export function bipolarShapeScore(
+  signal: readonly number[],
+  zeroCrossIndex: number,
+  iFirst: number,
+  iSecond: number,
+  expectedLobeSamples: number,
+): number {
+  const n = signal.length;
+  const s = Math.min(
+    Math.max(3, (iSecond - iFirst) / 2, 0.7 * expectedLobeSamples),
+    1.5 * expectedLobeSamples,
+  );
+  const positiveFirst = signal[iFirst]! >= 0;
+  const lo = Math.max(0, Math.round(zeroCrossIndex - 2.5 * s));
+  const hi = Math.min(n - 1, Math.round(zeroCrossIndex + 2.5 * s));
+  if (hi - lo < 4) return 0;
+  let dot = 0;
+  let ww = 0;
+  let gg = 0;
+  for (let j = lo; j <= hi; j++) {
+    const u = (j - zeroCrossIndex) / s;
+    // DoG template: positive lobe before the crossing when positiveFirst.
+    let g = -u * Math.exp(-0.5 * u * u);
+    if (!positiveFirst) g = -g;
+    const w = signal[j]!;
+    dot += w * g;
+    ww += w * w;
+    gg += g * g;
+  }
+  if (ww === 0 || gg === 0) return 0;
+  return dot / Math.sqrt(ww * gg);
 }
 
 /** Indices of local maxima (strictly rises into, does not rise out of). */
@@ -95,20 +139,51 @@ export interface DetectOptions {
   sigma: number;
   /** Threshold multiplier k: a PRIMARY lobe needs prominence ≥ k·σ. Default 3.5. */
   kSigma?: number;
+  /**
+   * Physical floor on prominence (signal units), independent of σ. A real
+   * fastener at 12–15 mm standoff produces ≥ 0.5 µT (SPEC §4.1.1); on a very
+   * quiet sensor k·σ alone would chase sub-physical ripples. Default 0.
+   */
+  minProminenceAbs?: number;
   /** Max index gap between the two lobes of one event (≈ one lobe-width plus slack). */
   maxPairGap: number;
   /** Events with zero crossings closer than this many samples: keep the stronger. */
   minSeparation: number;
+  /** Minimum bipolar-shape correlation to accept an event. Default SHAPE_SCORE_MIN. */
+  minShapeScore?: number;
+  /**
+   * Physically expected lobe sigma in samples (≈ 1″ × samples-per-inch at
+   * the anchor-implied sweep speed). Sets the shape-template width and the
+   * minimum credible lobe spacing. Default: maxPairGap / 3.5.
+   */
+  expectedLobeSamples?: number;
 }
+
+/**
+ * Default bipolar-shape acceptance bar. Measured on the corpus physics:
+ * true events (even at detection-threshold SNR) score ≥ ~0.75 because the
+ * S-curve is coherent across the window; blank-wall noise pairings cluster
+ * well below. See tests/unit/dsp-peaks.test.ts and docs/accuracy-dsp.md.
+ */
+export const SHAPE_SCORE_MIN = 0.55;
+
+/**
+ * Flank bar as a fraction of the primary bar. A real fastener's two lobes are
+ * near-symmetric (both ≈ the dipole amplitude); band-limited noise makes
+ * frequent weak ripples but rarely a strong opposite partner. 0.7 keeps a
+ * marginally noisy second lobe while rejecting noise pairings — measured in
+ * tests/unit/dsp-peaks.test.ts and the precision/recall suite.
+ */
+export const FLANK_RATIO = 0.7;
 
 /**
  * Assemble bipolar events from lobes.
  *
  * - PRIMARY lobes clear the full k·σ prominence bar.
- * - A primary is confirmed only when an opposite-sign FLANK lobe sits within
- *   `maxPairGap` samples. Flanks get a half-height bar (k·σ/2) so a
+ * - A primary is confirmed only when an opposite-sign FLANK lobe with
+ *   prominence ≥ FLANK_RATIO·k·σ sits within `maxPairGap` samples, so a
  *   marginally noisy second lobe does not throw away a real fastener, but a
- *   lone one-sided bump is still rejected.
+ *   lone one-sided bump (drift artifact) is still rejected.
  * - Pairing runs strongest-first, each lobe used once, choosing the
  *   largest-|value| eligible flank — so a tiny ripple cannot steal a real
  *   lobe's partner.
@@ -119,8 +194,12 @@ export interface DetectOptions {
  */
 export function detectBipolarEvents(signal: readonly number[], opts: DetectOptions): BipolarEvent[] {
   const k = opts.kSigma ?? 3.5;
-  const bar = k * opts.sigma;
-  const lobes = findLobes(signal, bar / 2);
+  const bar = Math.max(k * opts.sigma, opts.minProminenceAbs ?? 0);
+  const expectedLobe = opts.expectedLobeSamples ?? Math.max(4, opts.maxPairGap / 3.5);
+  // Lobes of a real fastener sit ≈ 2 lobe-sigma apart; anything under ~1.6
+  // lobe-sigma is a noise ripple pair, not a dipole signature.
+  const minPairGap = Math.max(3, Math.round(0.8 * expectedLobe));
+  const lobes = findLobes(signal, bar * FLANK_RATIO);
   const primaries = lobes
     .map((l, idx) => ({ l, idx }))
     .filter(({ l }) => l.prominence >= bar)
@@ -136,12 +215,11 @@ export function detectBipolarEvents(signal: readonly number[], opts: DetectOptio
       if (j === idx || used.has(j)) continue;
       const cand = lobes[j]!;
       if (cand.sign === l.sign) continue;
-      if (Math.abs(cand.index - l.index) > opts.maxPairGap) continue;
+      const gap = Math.abs(cand.index - l.index);
+      if (gap > opts.maxPairGap || gap < minPairGap) continue;
       if (best === -1 || Math.abs(cand.value) > Math.abs(lobes[best]!.value)) best = j;
     }
     if (best === -1) continue; // bipolar test failed: one-sided artifact
-    used.add(idx);
-    used.add(best);
     const partner = lobes[best]!;
     const iFirst = Math.min(l.index, partner.index);
     const iSecond = Math.max(l.index, partner.index);
@@ -167,6 +245,10 @@ export function detectBipolarEvents(signal: readonly number[], opts: DetectOptio
 
     const amplitudeIndex = Math.abs(l.value) >= Math.abs(partner.value) ? l.index : partner.index;
     const prominence = Math.max(l.prominence, partner.prominence);
+    const shapeScore = bipolarShapeScore(signal, zc, iFirst, iSecond, expectedLobe);
+    if (shapeScore < (opts.minShapeScore ?? SHAPE_SCORE_MIN)) continue; // ripple pair, not an S-curve
+    used.add(idx);
+    used.add(best);
     events.push({
       iFirst,
       iSecond,
@@ -174,6 +256,7 @@ export function detectBipolarEvents(signal: readonly number[], opts: DetectOptio
       amplitudeIndex,
       prominence,
       snr: prominence / opts.sigma,
+      shapeScore,
     });
   }
 

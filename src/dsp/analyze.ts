@@ -83,6 +83,13 @@ export const ACCESSORY_MEDIAN_UT = 90;
 export const SWEEP_FAST_IN_PER_S = 6.0;
 /** RATE_COLLAPSE: below this the lobes are undersampled (§4.1.6). */
 export const RATE_COLLAPSE_HZ = 12;
+/**
+ * Physical prominence floor (§4.1.1): a drywall screw at working standoff
+ * produces 0.5–8 µT, so anything under 0.4 µT prominence (0.5° on the
+ * heading proxy) is sub-physical ripple even when a very quiet sensor makes
+ * k·σ tiny.
+ */
+export const MIN_PROMINENCE_ABS = { FIELD: 0.4 /* µT */, PROXY: 0.5 /* deg */ } as const;
 
 /** One detected fastener with everything the UI needs to be honest about it. */
 export interface FastenerEvent {
@@ -91,6 +98,8 @@ export interface FastenerEvent {
   tSeconds: number;
   snr: number;
   prominence: number;
+  /** Bipolar-shape correlation, [−1, 1] — how S-shaped the event really is. */
+  shapeScore: number;
   confidence: Confidence;
 }
 
@@ -215,8 +224,10 @@ export function analyzeMagTraceDetailed(trace: SensorTrace, opts: AnalyzeOptions
   const events: BipolarEvent[] = detectBipolarEvents(filtered, {
     sigma,
     kSigma: k,
+    minProminenceAbs: tier === 'PROXY' ? MIN_PROMINENCE_ABS.PROXY : MIN_PROMINENCE_ABS.FIELD,
     maxPairGap: Math.max(3, Math.round(MAX_PAIR_GAP_IN * samplesPerInch)),
     minSeparation: Math.max(2, Math.round(MIN_EVENT_SEP_IN * samplesPerInch)),
+    expectedLobeSamples: Math.max(4, samplesPerInch), // lobe sigma ≈ 1″ at working standoff
   });
 
   const indexToT = (idx: number): number => {
@@ -235,6 +246,7 @@ export function analyzeMagTraceDetailed(trace: SensorTrace, opts: AnalyzeOptions
       tSeconds: tZc,
       snr: ev.snr,
       prominence: ev.prominence,
+      shapeScore: ev.shapeScore,
       confidence: snrToConfidence(ev.snr, tier, true),
     };
   });

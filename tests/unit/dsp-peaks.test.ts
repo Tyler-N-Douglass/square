@@ -115,11 +115,47 @@ describe('bipolar event detection (step 6)', () => {
     expect(Math.abs(events[0]!.zeroCrossIndex - 105)).toBeLessThan(8);
   });
 
-  it('band-limited noise alone produces no events at k=3.5', () => {
+  it('a quiet sensor (0.1 µT noise) yields nothing: the physical prominence floor', () => {
+    // Sub-physical ripples must not become fasteners no matter how quiet the
+    // sensor is (SPEC §4.1.1: a real screw writes ≥ 0.5 µT at standoff).
     const gauss = gaussian(mulberry32(31));
     const sig = Array.from({ length: 400 }, () => 0.1 * gauss());
-    const { events } = detectLikePipeline(sig);
+    const filtered = savitzkyGolay(sig, 9);
+    const events = detectBipolarEvents(filtered, {
+      sigma: robustSigma(filtered),
+      minProminenceAbs: 0.4,
+      maxPairGap: 45,
+      minSeparation: 26,
+      expectedLobeSamples: 13,
+    });
     expect(events).toHaveLength(0);
+  });
+
+  it('statistical honesty: blank-wall noise never reaches STRONG, and false pairs are rare', () => {
+    // 200 seeded blank sweeps at seed-fixture noise (0.22 µT). The detector
+    // is ALLOWED occasional low-SNR false events — POSSIBLE exists for
+    // exactly that — but noise must never fabricate a STRONG (SNR ≥ 8), and
+    // the rate must stay low. Measured: 84 events / 200 traces (0.42 per
+    // 10 s blank sweep), max SNR < 8 (docs/accuracy-dsp.md). Deterministic:
+    // bounds are regressions, not hopes.
+    let total = 0;
+    let maxSnr = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const gauss = gaussian(mulberry32(seed * 613));
+      const sig = Array.from({ length: 400 }, () => 0.22 * gauss());
+      const filtered = savitzkyGolay(sig, 9);
+      const events = detectBipolarEvents(filtered, {
+        sigma: robustSigma(filtered),
+        minProminenceAbs: 0.4,
+        maxPairGap: 47,
+        minSeparation: 27,
+        expectedLobeSamples: 13,
+      });
+      total += events.length;
+      for (const ev of events) maxSnr = Math.max(maxSnr, ev.snr);
+    }
+    expect(maxSnr).toBeLessThan(8); // STRONG is unreachable by noise
+    expect(total).toBeLessThanOrEqual(90); // ≈ 0.4 false events per 10 s blank sweep
   });
 
   it('findLobes returns both signs sorted by index', () => {

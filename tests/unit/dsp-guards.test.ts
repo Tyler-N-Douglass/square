@@ -155,10 +155,10 @@ describe('analyzer options and determinism', () => {
     const opts = baseOpts({
       seed: 80,
       fasteners: [
-        { positionIn: 6, amplitude: 1.4 },
-        { positionIn: 22, amplitude: 1.4 },
+        { positionIn: 6, amplitude: 0.95 },
+        { positionIn: 22, amplitude: 0.95 },
       ],
-      noise: 0.45,
+      noise: 0.5,
     });
     const trace = synthesizeTrace(opts);
     const loose = analyzeMagTrace(trace, { sensitivity: 3.5 });

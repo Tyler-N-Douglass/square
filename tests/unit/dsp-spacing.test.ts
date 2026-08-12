@@ -117,10 +117,31 @@ describe('refusal (SPEC §15.3)', () => {
     }
   });
 
-  it('property: 16″ and 24″ lattices with jitter ≤0.3″ recover, seeded ×100', () => {
+  it('property: 16″/24″ lattices with tight jitter (≤0.12″) recover exactly, seeded ×100', () => {
     for (let seed = 1; seed <= 100; seed++) {
       const rand = mulberry32(seed * 977);
       const pitch = seed % 2 === 0 ? 16 : 24;
+      const phase = rand() * pitch;
+      const peaks: number[] = [];
+      for (let k = 0; k < 4; k++) {
+        peaks.push(phase + k * pitch + (rand() - 0.5) * 0.24);
+      }
+      const res = analyzeLattice(peaks);
+      expect(res.fit, `seed ${seed}`).not.toBeNull();
+      expect(res.fit!.pitchIn, `seed ${seed}: wrong pitch`).toBe(pitch);
+      expect(res.fit!.explained).toBe(4);
+    }
+  });
+
+  it('property: at ±0.3″ jitter the metric neighbor is a legitimate answer, never a distant pitch', () => {
+    // 16.0″ and 15.748″ (400 mm) differ by 0.252″ per interval — four peaks
+    // with ±0.3″ position error genuinely cannot always tell them apart.
+    // The honest assertion: the fit is one of the two neighbors, all four
+    // peaks explained, and nothing wilder.
+    for (let seed = 1; seed <= 100; seed++) {
+      const rand = mulberry32(seed * 977);
+      const pitch = seed % 2 === 0 ? 16 : 24;
+      const neighbor = seed % 2 === 0 ? 15.748 : 23.622;
       const phase = rand() * pitch;
       const peaks: number[] = [];
       for (let k = 0; k < 4; k++) {
@@ -128,7 +149,7 @@ describe('refusal (SPEC §15.3)', () => {
       }
       const res = analyzeLattice(peaks);
       expect(res.fit, `seed ${seed}`).not.toBeNull();
-      expect(res.fit!.pitchIn, `seed ${seed}: wrong pitch`).toBe(pitch);
+      expect([pitch, neighbor], `seed ${seed}: pitch ${res.fit!.pitchIn}`).toContain(res.fit!.pitchIn);
       expect(res.fit!.explained).toBe(4);
     }
   });

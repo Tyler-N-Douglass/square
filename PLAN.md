@@ -106,8 +106,10 @@ Never proceed past a red gate. A10 (me, wearing that hat, with the suite as arbi
 
 - [x] Kit unpacked, placed per KIT-MANIFEST, all four checks pass
 - [x] PLAN.md, DECISIONS.md
-- [ ] G0 — foundation
-- [ ] G1 — math
+- [x] G0 — foundation (27 infra tests green; frozen tests red as designed)
+- [x] G1 — math (508/508 green; frozen tests pass unedited; miter canonicals exact;
+      angle solver worst error ~1e-13°; zero-crossing 4.003″/20.016″ vs amplitude
+      3.225″/18.975″ on the seed; 7-fixture corpus verified; ADR-010/011/012 recorded)
 - [ ] G2 — tools + guidance
 - [ ] G3 — honesty
 - [ ] G4 — deployed

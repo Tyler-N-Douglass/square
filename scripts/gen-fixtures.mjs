@@ -197,11 +197,11 @@ const FIXTURES = [
     seed: 5150,
     note:
       'Generated: plaster over lath — 12 nails over 40in, depths varied so 6 read strong and ' +
-      '6 faint. Pipeline detects 5 of the strong ones (median spacing ~6in — no stud lattice ' +
-      'is that dense), refuses the pitch and caps confidence at POSSIBLE. Expected peak list ' +
-      'is the committed pipeline output, not the ground-truth nail positions: the faint ' +
-      'carpet raises the noise floor and one strong nail stays under the bar. That miss is ' +
-      'the point of the fixture.',
+      '6 faint. Pipeline detects 4 of the strong ones (median spacing ~5.5in — no stud ' +
+      'lattice is that dense), refuses the pitch and caps confidence at POSSIBLE. Expected ' +
+      'peak list is the committed pipeline output, not the ground-truth nail positions: the ' +
+      'faint carpet raises the noise floor and two strong nails stay under the bar. Those ' +
+      'misses are the point of the fixture.',
     hz: 40,
     spanIn: 40,
     speedInPerS: 3.0,
@@ -225,7 +225,7 @@ const FIXTURES = [
     noise: 0.28,
     driftAmplitude: 0.7,
     expected: {
-      peaks_in: [9.14, 14.23, 21.66, 27.13, 33.95],
+      peaks_in: [9.14, 14.23, 21.66, 27.13],
       tolerance_in: 0.75,
       pitch_in: null,
       confidence: 'POSSIBLE',

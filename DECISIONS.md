@@ -124,3 +124,55 @@ carpenter the wrong family wastes a stick of molding.
 
 **Consequences.** If derivation and candidate formula disagree, the derivation + canonicals win;
 PHYSICS.md documents the derivation.
+
+## ADR-010 — The ghost bob wears currentColor, not orange
+
+**Context.** SPEC §7.5.2 says the LEVEL out-of-tolerance state shows "the same bob silhouette at
+15% opacity"; the shipped bob is orange. But §7.1's orange rule is absolute: orange marks a value
+a sensor is producing right now, and nothing static or decorative ever wears it. The ghost bob is
+the *gravity reference* the live reading is compared against — a reference, not a reading.
+
+**Decision.** `ghostBob()` renders in currentColor at 15% opacity. The orange rule outranks the
+literal reading of §7.5.2. (Raised by A7; adopted at Gate 1.)
+
+**Consequences.** Orange stays perfectly reliable as "live measured value" everywhere in the app.
+
+## ADR-011 — DSP guard and threshold decisions beyond the spec text (A2, Gate 1)
+
+**Context.** Implementing §4.1.2/§4.1.6 exposed places where the letter of the spec under-serves
+its own honesty charter.
+
+**Decisions.**
+1. Peak suppression widened: warnings SWEEP_TOO_FAST and RATE_COLLAPSE also suppress reported
+   positions (spec mandated suppression only for WALL_HOT / MAGNETIC_ACCESSORY / SATURATED).
+   Smeared or aliased positions are fictions; §15.3 wins.
+2. Detection noise floor uses whole-trace MAD; the trailing-3 s form ships alongside for the live
+   ribbon. A trailing window that contains the first fastener inflates the floor exactly where the
+   first detection must happen.
+3. Two threshold additions (never relaxations): a physical prominence floor (0.4 µT field /
+   0.5° proxy, from §4.1.1's 0.5–8 µT anomaly range) and a derivative-of-Gaussian shape gate at
+   the physically expected lobe width. Blank-wall false events dropped 990 → 84 per 200 traces,
+   and noise can never fabricate STRONG (max false SNR < 8, tested).
+4. DENSE_SPACING_IN = 8″: median nearest-neighbor spacing under 8″ cannot be a stud lattice
+   (tightest real pitch is 12″) → plaster/metal signature, confidence capped.
+5. 16.0″ vs 15.748″ (400 mm) lattice candidates differ by 0.252″ per interval — legitimately
+   indistinguishable at ±0.3″ peak error with ≤4 peaks. Documented and tested as ambiguous rather
+   than pretended otherwise.
+6. The tierB fixture carries three fasteners over 40″ (charter said two): with two peaks, one
+   interval cannot honestly discriminate the pitch candidates.
+
+**Consequences.** All encoded in fixtures and tests; docs/physics-dsp.md carries justifications.
+
+## ADR-012 — DEMO fidelity per tool
+
+**Context.** §7B.4 wants every tool to DEMO by replaying a bundled trace through the real
+pipeline. The trace schema is magnetometer-shaped; CORNER/LEVEL/BEVEL/LAYOUT measure with other
+sensors.
+
+**Decision.** SCAN demos replay the shared fixture corpus (strict §7B.4). LEVEL and BEVEL demos
+drive the real fusion/capture pipeline with deterministic synthesized IMU streams, labeled
+SYNTHETIC. CORNER and LAYOUT demos run worked examples through the real solvers (the same
+projection math the ground-truth suite uses). Every demo surfaces its synthetic provenance.
+
+**Consequences.** No demo bypasses the real pipeline anywhere; the strict fixture-unification
+test applies to SCAN, where the corpus exists.
