@@ -112,8 +112,12 @@ Never proceed past a red gate. A10 (me, wearing that hat, with the suite as arbi
       3.225″/18.975″ on the seed; 7-fixture corpus verified; ADR-010/011/012 recorded)
 - [x] G2 — tools + guidance (998/998 across 77 files; all 7 tools with guided runs +
       DEMOs; registry merges done; ADR-013 rulings recorded; whole app 233 KB gzipped)
-- [ ] G3 — honesty
-- [ ] G4 — deployed
+- [x] G3 — honesty (A11 audit: 1 critical + 6 major + 10 minor; all must-fix findings
+      resolved and pinned by tests; audit CLOSED; suite 1032/1032 across 82 files)
+- [x] G4 — field-ready artifact (built, offline-verified via preview + SW inspection,
+      233 KB gz total; **deploy is a hand-off, not live** — this environment's network
+      policy blocks Netlify's upload hosts (ADR-014); README carries the two-line path
+      and states "not yet live" plainly)
 
 ## 7. Self-critique against §14 and §15 (one pass, as required)
 
