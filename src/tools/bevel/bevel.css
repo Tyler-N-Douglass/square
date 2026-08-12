@@ -109,9 +109,9 @@
 .cornerlist { list-style: none; margin: var(--grid) 0; padding: 0; display: flex; flex-direction: column; gap: var(--grid); }
 .cornerlist li { display: flex; align-items: center; gap: calc(var(--grid) * 2); flex-wrap: wrap; border: 2px solid var(--rule); padding: var(--grid); }
 
-/* demo panel */
+/* demo panel + explainer card */
 .bevel__demos { display: flex; gap: var(--grid); flex-wrap: wrap; }
-.demopanel { border: var(--rule-w) solid var(--type); padding: calc(var(--grid) * 2); margin-top: var(--grid); }
+.demopanel, .explainerbox { border: var(--rule-w) solid var(--type); padding: calc(var(--grid) * 2); margin-top: var(--grid); }
 .demopanel__label {
   display: inline-block;
   font-family: var(--font-hud);

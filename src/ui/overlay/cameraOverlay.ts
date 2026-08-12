@@ -218,11 +218,12 @@ export function cameraOverlay(deps: CameraOverlayDeps): CameraOverlayEl {
     reason.hidden = true;
     recovery.hidden = true;
     liveWrap.hidden = false;
-    video.srcObject = stream;
     try {
+      video.srcObject = stream;
       await video.play();
     } catch {
-      /* autoplay refusal — the stream still renders on first gesture */
+      /* autoplay refusal or a platform srcObject quirk — the overlay lines
+         still draw; the preview joins on the next gesture where possible */
     }
     if (!label) {
       const first = deps.getReading();
@@ -320,9 +321,17 @@ export function cameraOverlay(deps: CameraOverlayDeps): CameraOverlayEl {
       opened = false;
       if (raf) { cancelAnimationFrame(raf); raf = 0; }
       if (stream) {
-        for (const track of stream.getTracks()) track.stop();
+        try {
+          for (const track of stream.getTracks?.() ?? []) track.stop();
+        } catch {
+          /* platform stream without track access — nothing to release */
+        }
         stream = null;
-        video.srcObject = null;
+        try {
+          video.srcObject = null;
+        } catch {
+          /* srcObject quirk — the element is being discarded anyway */
+        }
       }
       frozen = false;
       frozenImg.hidden = true;

@@ -15,7 +15,6 @@ import {
   add,
   formatInches,
   parseLength,
-  rational,
   toNumber,
 } from '../../geometry/units';
 import {

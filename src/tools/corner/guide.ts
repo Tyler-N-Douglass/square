@@ -176,12 +176,8 @@ export async function runCornerDemo(spec: CornerDemoSpec, deps: CornerDemoDeps):
 /* Glossary additions (lead merges into src/guidance/glossary.ts)      */
 /* ------------------------------------------------------------------ */
 
+/** 'loupe' already ships in src/guidance/glossary.ts — not duplicated here. */
 export const GLOSSARY_ADDITIONS: Readonly<Record<string, GlossaryEntry>> = {
-  loupe: {
-    term: 'loupe',
-    def: 'The magnified circle that floats above your finger while you place a mark.',
-    whyItMatters: 'Your fingertip covers the corner; the loupe shows the pixels under it so the mark lands on the edge, not near it.',
-  },
   rack: {
     term: 'rack',
     def: 'A frame pushed out of square while its sides keep their lengths — a rectangle gone parallelogram.',

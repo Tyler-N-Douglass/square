@@ -88,8 +88,18 @@ export function syntheticImuStream(spec: StreamSpec): ImuSample[] {
       }
     } else {
       for (let i = 0; i < steps; i++) {
-        // Jitter far past the motion gate (|‖a‖−g| > 0.35 or ‖ω‖ > 0.25).
-        push(g[0] + n(1.8), g[1] + n(1.8), g[2] + n(1.8), n(0.9), n(0.9), n(0.9));
+        // Handling motion past the gate (|‖a‖−g| > 0.35 or ‖ω‖ > 0.25):
+        // accel jitters randomly; the gyro oscillates like hand tremor —
+        // large rates, near-zero net rotation over the segment, so a legal
+        // transit's integration error stays inside the drift budget while an
+        // illegal one is refused on TIME, which is what the budget measures.
+        const tt = i * dt;
+        push(
+          g[0] + n(1.8), g[1] + n(1.8), g[2] + n(1.8),
+          0.6 * Math.sin(2 * Math.PI * 6.1 * tt) + n(0.02),
+          0.6 * Math.sin(2 * Math.PI * 7.3 * tt) + n(0.02),
+          0.6 * Math.sin(2 * Math.PI * 5.7 * tt) + n(0.02),
+        );
       }
     }
   }

@@ -655,7 +655,13 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     }
     spanF.err.textContent = '';
     spanIn = spanParsed.inches;
-    echo.textContent = `Span reads as ${formatFtIn(spanParsed.inches, precision).text} (${formatInches(spanParsed.inches, precision).text}). Entered values stay yours — outputs are derived.`;
+    // Echo the parse in ENTERED provenance (SPEC §5, §15.5): the span is the
+    // user's claim, dotted-underlined, never orange.
+    echo.replaceChildren(
+      document.createTextNode('Span reads as '),
+      h('span', 'entered hud', formatFtIn(spanParsed.inches, precision).text),
+      document.createTextNode(` (${formatInches(spanParsed.inches, precision).text}). Entered values stay yours — outputs are derived.`),
+    );
 
     const count = Number(countInput.value);
     const need = (raw: string, err: HTMLElement): Rational | null | 'error' => {

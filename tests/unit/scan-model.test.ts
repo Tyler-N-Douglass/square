@@ -312,13 +312,16 @@ describe('stateWordFor / pitchForAnomaly', () => {
 
   it('tone is silent on a quiet wall and rises monotonically with amplitude', () => {
     expect(pitchForAnomaly(0.05, 0.2, 0.4)).toBe(0);
+    // σ = 0.2, floor 0.4 → peak bar 0.7, tone saturates at 4×bar = 2.8.
     let prev = 0;
-    for (const amp of [0.5, 1, 2, 3, 5]) {
+    for (const amp of [0.5, 1, 1.5, 2, 2.5]) {
       const f = pitchForAnomaly(amp, 0.2, 0.4);
       expect(f).toBeGreaterThan(prev);
       prev = f;
     }
-    expect(prev).toBeLessThanOrEqual(880);
+    // Clamped at the top pitch past saturation — never shrieks unbounded.
+    expect(pitchForAnomaly(3, 0.2, 0.4)).toBe(880);
+    expect(pitchForAnomaly(50, 0.2, 0.4)).toBe(880);
   });
 
   it('LiveFeedback detects a bump on a drifting pedestal and reports the haptic moment once', () => {

@@ -77,7 +77,7 @@ export interface ScanDeps {
   memory?: GuideMemory;
   replaySpeed?: number | 'sync';
   demoSpeed?: number | 'sync';
-  makeFieldSource?: () => FieldMagSource;
+  makeFieldSource?: () => SensorSource<MagSample> & { lastError?: string | null };
   makeProxySource?: () => { imu: SensorSource<ImuSample>; source: SensorSource<MagSample> };
   requestMotion?: () => Promise<MotionPermissionResult>;
   /** Auto-run the guided walkthrough on mount (default true). */
@@ -358,9 +358,9 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
   const reticle = h('div', 'scan__reticle');
   const reticleCross = h('div', 'scan__reticle-cross');
   const reticleLabel = h('div', 'scan__reticle-label', 'SENSOR');
-  reticle.append(reticleCross, reticleLabel);
   const reticleNote = h('a', 'scan__reticle-note') as HTMLAnchorElement;
   reticleNote.href = '#/calibrate';
+  reticle.append(reticleCross, reticleLabel, reticleNote);
   const canvas = h('canvas', 'scan__ribbon') as HTMLCanvasElement;
   canvas.setAttribute('role', 'img');
   canvas.setAttribute(
@@ -541,7 +541,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
   let eventsSignature = '';
   const renderEvents = (a: DetailedTraceAnalysis, meta: AnalysisMeta): void => {
     const hasPositions = currentAnchors !== null && currentAnchors.length >= 2;
-    const sig = `${hasPositions}|${a.events.map((e) => `${e.tSeconds.toFixed(2)}:${e.snr.toFixed(1)}`).join(';')}`;
+    const sig = `${hasPositions}|${a.confidence}|${a.warnings.join(',')}|${a.events.map((e) => `${e.tSeconds.toFixed(2)}:${e.snr.toFixed(1)}`).join(';')}`;
     if (sig === eventsSignature) return;
     eventsSignature = sig;
 
@@ -668,6 +668,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
   };
 
   const clearPass = (keepGhosts = false): void => {
+    session.reset();
     pipeline.reset();
     feedback.reset();
     ribbon.clear();
@@ -774,16 +775,26 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
     if (demoActive) stopDemo();
     recoveryPanel.hidden = true;
     clearPass(firstPass !== null);
-    const ok = await makeAndStartSource();
-    if (!ok || unmounted) return;
+    // Optimistic: a 'sync'-clock replay delivers the whole trace INSIDE
+    // makeAndStartSource and its onEnd flips `running` back off before we
+    // return — so the flag is set first and failure paths reset it.
     running = true;
     session.start(now());
-    firstEventFired = firstEventFired && firstPass !== null; // re-arm per mount, keep after first
+    const ok = await makeAndStartSource();
+    if (unmounted) return;
+    if (!ok) {
+      running = false;
+      session.reset();
+      syncControls();
+      return;
+    }
     guideHandle?.fireCustom('sensor-live');
-    void requestWakeLock();
-    startMetronome();
-    ribbon.start();
-    announce(sourceKind === 'replay' ? 'Replay running' : 'Scanning. Hold the phone flat against the wall.');
+    if (running) {
+      void requestWakeLock();
+      startMetronome();
+      ribbon.start();
+      announce(sourceKind === 'replay' ? 'Replay running' : 'Scanning. Hold the phone flat against the wall.');
+    }
     syncControls();
   }
 
@@ -813,6 +824,7 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
 
   /** Replay end (and demo end) — the trace ran out on its own. */
   async function finishSweep(fromReplay: boolean): Promise<void> {
+    if (unmounted) return;
     if (fromReplay) {
       running = false;
       stopTone();
@@ -1019,11 +1031,13 @@ export function mountScan(el: HTMLElement, ctx: AppContext, deps: ScanDeps = {})
   }
 
   if (live) {
+    // Initial value is NaN → renders as "—": no number appears before a
+    // sample was actually measured (SPEC §15.1 — never a fake reading).
     readout = measuredEl(
       {
         id: 'scan-live',
         kind: 'stud',
-        value: 0,
+        value: NaN,
         unit: unitFor(dataTier),
         uncertainty: { plusMinus: NaN, basis: 'unknown' },
         confidence: 'NOISE',

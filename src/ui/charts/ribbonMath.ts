@@ -123,5 +123,5 @@ export function xForDistance(d: number, dMin: number, dMax: number, widthPx: num
 
 /** First tick at or above `min` on a `step` grid (for axis tick loops). */
 export function firstTickAtOrAbove(min: number, step: number): number {
-  return Math.ceil(min / step - 1e-9) * step;
+  return Math.ceil(min / step - 1e-9) * step + 0; // + 0 normalizes -0
 }

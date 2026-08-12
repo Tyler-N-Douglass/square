@@ -28,7 +28,7 @@ import { announce } from '../../app/shell';
 import { ensureAudio, levelTone, resetLevelTone } from '../../app/audio';
 import { vibrate } from '../../app/haptics';
 import { releaseWakeLock, requestWakeLock } from '../../app/wakelock';
-import { saveMeasurement } from '../../app/logStore';
+import { saveMeasurement, saveMedia } from '../../app/logStore';
 import {
   calibrationsForProvenance,
   getProfile,
@@ -422,7 +422,7 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
 
   function setMode(m: LevelMode): void {
     if (m === mode) return;
-    if (mode === 'edge') resetLevelTone();
+    resetLevelTone(); // the tone re-establishes on the next sample in a tone mode
     mode = m;
     for (const [id, b] of modeBtns) b.setAttribute('aria-pressed', id === m ? 'true' : 'false');
     surfacePanel.classList.toggle('level__panel--active', m === 'surface');
@@ -567,6 +567,8 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
 
     holdWindow.push(v.primary, v.stable);
 
+    // §4.2.4: pitch maps deviation, silent at level, click on crossing —
+    // in the modes where the phone rests on the work (eyes on the bracket).
     if (mode === 'edge') {
       levelTone(v.edge);
       const locked = v.stable && Math.abs(v.edge) < LOCK_TOL_DEG;
@@ -575,6 +577,8 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
         announce('LEVEL');
       }
       wasLocked = locked;
+    } else if (mode === 'surface') {
+      levelTone(v.tilt);
     }
     if (v.stable && !wasStable) announce('HOLD');
     wasStable = v.stable;
@@ -737,15 +741,35 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     void doSave(view.primary, mode);
   });
 
+  /** Data-URL → Blob without fetch() (CSP: no connect-src for data:). */
+  function blobFromDataUrl(dataUrl: string): Blob | null {
+    try {
+      const [head, body] = dataUrl.split(',', 2);
+      if (!head || body === undefined) return null;
+      const mime = /data:([^;]+)/.exec(head)?.[1] ?? 'image/jpeg';
+      const bin = atob(body);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new Blob([bytes], { type: mime });
+    } catch {
+      return null;
+    }
+  }
+
   async function onOverlayFreeze(capture: { angleDeg: number; stable: boolean; blob: Blob | null; dataUrl: string | null }): Promise<void> {
     if (demoActive) return;
     if (!capture.stable) {
       announce('Frozen. No HOLD while freezing — frame kept, measurement not saved.');
       return;
     }
-    const media: Measurement['media'] | undefined = capture.dataUrl
-      ? { photoId: `level-freeze-${Date.now().toString(36)}`, overlay: { dataUrl: capture.dataUrl } }
-      : undefined;
+    // Burned still frame → the media store (A8), referenced by photoId.
+    const blob = capture.blob ?? (capture.dataUrl ? blobFromDataUrl(capture.dataUrl) : null);
+    let media: Measurement['media'] | undefined;
+    if (blob) {
+      const photoId = `level-freeze-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+      await saveMedia(photoId, blob);
+      media = { photoId };
+    }
     await doSave(capture.angleDeg, 'overlay', media, 'overlay-freeze');
   }
 

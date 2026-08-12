@@ -431,7 +431,9 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
     if (!quad) return;
     const token = ++solveToken;
     const profile = getProfile();
-    const lens = lensForImage(profile, capture.cameraKey, capture.width, capture.height);
+    // Files fall back to 'cam:default' so a lens calibrated from an uploaded
+    // sheet photo still applies to uploaded corner shots (aspect-guarded).
+    const lens = lensForImage(profile, capture.cameraKey ?? 'cam:default', capture.width, capture.height);
     const sigmaPx = markingSigmaPx({
       cssToWorkingScale: marker.cssToWorkingScale(),
       allRefined: marker.session.allRefined,
