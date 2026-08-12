@@ -73,3 +73,33 @@ self.addEventListener('fetch', (e) => {
 writeFileSync(join(dist, 'sw.js'), sw);
 const total = files.reduce((n, f) => n + statSync(join(dist, f.slice(1))).size, 0);
 console.log(`sw.js written: ${files.length} precached files, version ${version}, ${(total / 1024).toFixed(0)} KB raw`);
+
+// Emit _headers and _redirects into dist so drag-and-drop deploys carry the
+// same headers netlify.toml gives repo-connected deploys. Permissions-Policy
+// is what un-blocks the sensors — without it a Drop deploy ships a stud
+// finder that cannot feel the wall (ADR-014).
+const headersFile = `/*
+  Permissions-Policy: accelerometer=(self), gyroscope=(self), magnetometer=(self), camera=(self), ambient-light-sensor=(self)
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  Cross-Origin-Opener-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/icons/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+`;
+writeFileSync(join(dist, '_headers'), headersFile);
+writeFileSync(join(dist, '_redirects'), '/*  /index.html  200\n');
+console.log('_headers and _redirects written for drag-and-drop deploys');
