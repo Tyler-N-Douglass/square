@@ -13,9 +13,9 @@
     "verify:fixtures": "vitest run tests/fixtures.verify.test.ts",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "happy-dom": "^20.11.2",
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
     "vitest": "^3.0.0"
