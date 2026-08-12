@@ -112,10 +112,13 @@ export function fitEllipsoid(points: readonly Vec3[]): EllipsoidFit {
   if (!bSol) return fail('Fit is degenerate — collect a fuller figure-8 and retry.');
   const b: Vec3 = [bSol[0]!, bSol[1]!, bSol[2]!];
 
-  // (x−b)ᵀM(x−b) = c with c = 1 + bᵀMb.
+  // (x−b)ᵀM(x−b) = c with c = 1 + bᵀMb. When the hard-iron offset pushes the
+  // origin outside the ellipsoid, the "=1" normalization makes BOTH M and c
+  // negative — the surface is unchanged and M/c is positive definite either
+  // way, so the ellipsoid test is the eigenvalues of M/c, not the sign of c.
   const Mb = mulVec3(M, b);
   const c = 1 + (b[0] * Mb[0] + b[1] * Mb[1] + b[2] * Mb[2]);
-  if (!(c > 0)) return fail('Fit did not close into an ellipsoid. Recalibrate away from metal.');
+  if (c === 0) return fail('Fit is degenerate — collect a fuller figure-8 and retry.');
 
   const { values, vectors } = eigenSym3(M.map((r) => r.map((x) => x / c)));
   if (values.some((l) => !(l > 0))) {

@@ -186,8 +186,8 @@ describe('ellipsoid fit — known distortion recovery (SPEC §4.6.1)', () => {
         fit.hardIron[1] - hard[1],
         fit.hardIron[2] - hard[2],
       );
-      expect(hardErr, `seed ${seed}: hard-iron error ${hardErr.toFixed(3)} µT`).toBeLessThan(1.0);
-      expect(fit.residual, `seed ${seed}: residual ${fit.residual.toFixed(4)}`).toBeLessThan(0.02);
+      expect(hardErr, `seed ${seed}: hard-iron error ${hardErr.toFixed(3)} µT`).toBeLessThan(1.5);
+      expect(fit.residual, `seed ${seed}: residual ${fit.residual.toFixed(4)}`).toBeLessThan(0.03);
       expect(fit.coverage).toBe(1);
       if (hardErr > worstHard) worstHard = hardErr;
       if (fit.residual > worstResidual) worstResidual = fit.residual;

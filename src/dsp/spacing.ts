@@ -72,9 +72,7 @@ export function fitPhase(positionsIn: readonly number[], pitchIn: number): numbe
   return phase;
 }
 
-/** Evaluate one candidate pitch against the peaks. */
-export function evaluatePitch(positionsIn: readonly number[], pitchIn: number): LatticeFit {
-  const phase = fitPhase(positionsIn, pitchIn);
+function scorePhase(positionsIn: readonly number[], pitchIn: number, phase: number): LatticeFit {
   let explained = 0;
   let sq = 0;
   for (const x of positionsIn) {
@@ -84,13 +82,42 @@ export function evaluatePitch(positionsIn: readonly number[], pitchIn: number): 
       sq += r * r;
     }
   }
+  let p = phase % pitchIn;
+  if (p < 0) p += pitchIn;
   return {
     pitchIn,
-    phaseIn: phase,
+    phaseIn: p,
     rmsIn: explained > 0 ? Math.sqrt(sq / explained) : NaN,
     explained,
     total: positionsIn.length,
   };
+}
+
+function betterFit(a: LatticeFit, b: LatticeFit): LatticeFit {
+  if (b.explained > a.explained) return b;
+  if (b.explained === a.explained && b.explained > 0 && b.rmsIn < a.rmsIn) return b;
+  return a;
+}
+
+/**
+ * Evaluate one candidate pitch against the peaks. The circular-mean phase is
+ * optimal on clean lattices but one off-lattice outlier drags it, so every
+ * peak's own phase is also tried (deterministic RANSAC over ≤ a dozen
+ * candidates), then the winner is refined by a circular mean over only the
+ * peaks it explains.
+ */
+export function evaluatePitch(positionsIn: readonly number[], pitchIn: number): LatticeFit {
+  let best = scorePhase(positionsIn, pitchIn, fitPhase(positionsIn, pitchIn));
+  for (const x of positionsIn) {
+    best = betterFit(best, scorePhase(positionsIn, pitchIn, x));
+  }
+  if (best.explained > 0) {
+    const inliers = positionsIn.filter(
+      (x) => Math.abs(fold(x - best.phaseIn, pitchIn)) <= LATTICE_TOLERANCE_IN,
+    );
+    best = betterFit(best, scorePhase(positionsIn, pitchIn, fitPhase(inliers, pitchIn)));
+  }
+  return best;
 }
 
 function medianOf(xs: number[]): number {
