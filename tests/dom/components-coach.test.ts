@@ -41,12 +41,24 @@ describe('coachMark', () => {
     expect(a.hasAttribute('aria-describedby')).toBe(false);
   });
 
-  it('dismisses on any tap, anywhere', () => {
+  it('dismisses on a completed tap (click), anywhere', () => {
     const a = anchor();
     const mark = coachMark(a, 'Tap anywhere to continue.');
-    document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    document.body.dispatchEvent(new Event('click', { bubbles: true }));
     expect(mark.isConnected).toBe(false);
     expect(activeCoachMark()).toBeNull();
+  });
+
+  it('survives a touch that becomes a scroll — pointerdown alone must NOT dismiss', () => {
+    // The user's bug: touching the screen to scroll (or steady a hand)
+    // killed the tooltip before it could be read. Only a completed tap
+    // (click) dismisses.
+    const a = anchor();
+    const mark = coachMark(a, 'Longer guidance text the user needs time to read.');
+    document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    window.dispatchEvent(new Event('scroll'));
+    expect(mark.isConnected).toBe(true);
+    expect(activeCoachMark()).toBe(mark);
   });
 
   it('dismisses from the keyboard', () => {
@@ -80,9 +92,13 @@ describe('coachMark', () => {
     expect(activeCoachMark()).toBeNull();
   });
 
-  it('CSS: two lines maximum, instant appearance — no animation, no transition', () => {
+  it('CSS: never truncates its own text, instant appearance — no animation, no transition', () => {
+    // The two-line rule (§7B.5) constrains the COPY (guidance length tests),
+    // never the display: a clamp that cuts a sentence off mid-read is the bug
+    // the owner reported, not a design feature.
     const rule = css.match(/\.coach\s*\{[^}]*\}/)?.[0] ?? '';
-    expect(rule).toContain('-webkit-line-clamp: 2');
+    expect(rule).not.toContain('line-clamp');
+    expect(rule).not.toContain('overflow: hidden');
     expect(rule).not.toContain('animation');
     expect(rule).not.toContain('transition');
   });

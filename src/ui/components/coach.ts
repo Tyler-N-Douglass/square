@@ -61,18 +61,25 @@ export function coachMark(anchor: HTMLElement, text: string, opts: CoachMarkOpts
     }
   };
   const onResize = (): void => position(div, anchor);
+  const onScroll = (): void => position(div, anchor);
 
-  // Capture phase: any tap dismisses, and the tapped control still receives
-  // its own event — the mark never blocks the interface.
-  document.addEventListener('pointerdown', onAnyTap, true);
+  // 'click', capture phase — not 'pointerdown'. A finished tap anywhere
+  // dismisses and the tapped control still receives its own event; but a
+  // touch that becomes a scroll (or a hand steadying the phone) emits no
+  // click, so reading a longer mark never kills it mid-sentence.
+  document.addEventListener('click', onAnyTap, true);
   div.addEventListener('keydown', onKey);
   window.addEventListener('resize', onResize);
+  // The mark is position:fixed; scrolling moves its anchor out from under it
+  // unless it follows.
+  window.addEventListener('scroll', onScroll, { passive: true, capture: true });
 
   function dismiss(): void {
     if (done) return;
     done = true;
-    document.removeEventListener('pointerdown', onAnyTap, true);
+    document.removeEventListener('click', onAnyTap, true);
     window.removeEventListener('resize', onResize);
+    window.removeEventListener('scroll', onScroll, true);
     const ids = (anchor.getAttribute('aria-describedby') ?? '')
       .split(/\s+/)
       .filter((id) => id && id !== div.id);
@@ -91,7 +98,12 @@ export function coachMark(anchor: HTMLElement, text: string, opts: CoachMarkOpts
 function position(el: HTMLElement, anchor: HTMLElement): void {
   const r = anchor.getBoundingClientRect();
   const vh = window.innerHeight || 0;
-  el.style.left = `${Math.max(8, r.left)}px`;
+  const vw = window.innerWidth || 0;
+  // Clamp BOTH edges into the viewport — an anchor near the right side must
+  // not push the text off screen. Measure after append so width is real.
+  const w = el.offsetWidth || 0;
+  const left = vw ? Math.min(Math.max(8, r.left), Math.max(8, vw - w - 8)) : Math.max(8, r.left);
+  el.style.left = `${left}px`;
   if (vh && r.top > vh * 0.6) {
     // anchor sits low — place the mark above so the bottom-third controls stay clear
     el.style.top = 'auto';
