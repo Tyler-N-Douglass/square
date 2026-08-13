@@ -19,11 +19,16 @@ export function applyTheme(): void {
   glove.subscribe((g) => document.documentElement.setAttribute('data-glove', g));
 }
 
-export function tierBadge(cap: CapabilityReport): { text: string; cls: string } {
+/**
+ * Capability badge — plain words carry the meaning (ADR-015); the trade
+ * label (tier name, unit) rides along as `detail` for the tooltip and for
+ * SCAN's own header, where SPEC §4.1.8 wants the technical badge.
+ */
+export function tierBadge(cap: CapabilityReport): { text: string; cls: string; detail: string } {
   switch (cap.magTier) {
-    case 'FIELD': return { text: 'FIELD · µT', cls: 'badge badge--field' };
-    case 'PROXY': return { text: 'PROXY · deflection', cls: 'badge badge--proxy' };
-    case 'NONE': return { text: 'NO MAG · manual', cls: 'badge badge--none' };
+    case 'FIELD': return { text: 'FULL SENSOR', cls: 'badge badge--field', detail: 'FIELD tier — raw magnetic field (µT)' };
+    case 'PROXY': return { text: 'BASIC SENSOR', cls: 'badge badge--proxy', detail: 'PROXY tier — compass heading deflection, coarser' };
+    case 'NONE': return { text: 'NO WALL SENSOR', cls: 'badge badge--none', detail: 'No magnetometer — manual math and demos only' };
   }
 }
 
@@ -80,7 +85,8 @@ export function buildShell(root: HTMLElement, cap: CapabilityReport): { outlet: 
   const b = tierBadge(cap);
   badge.className = b.cls;
   badge.textContent = b.text;
-  badge.title = 'Magnetometer capability on this device';
+  badge.title = b.detail;
+  badge.setAttribute('aria-label', `${b.text} — ${b.detail}`);
 
   const gloveBtn = document.createElement('button');
   gloveBtn.type = 'button';

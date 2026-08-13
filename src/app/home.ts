@@ -69,7 +69,7 @@ export function mount(el: HTMLElement, ctx: AppContext): () => void {
   mh.textContent = 'FIELD MANUAL';
   const mp = document.createElement('span');
   mp.className = 'tile__line';
-  mp.textContent = 'By task, offline, starts with what this app can’t do.';
+  mp.textContent = 'How-to guides, by job.';
   manual.append(mh, mp);
   grid.append(manual);
   wrap.append(grid);

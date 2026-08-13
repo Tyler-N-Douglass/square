@@ -375,6 +375,28 @@ export function latticeStatement(fit: LatticeFit, predictedIn: readonly number[]
 }
 
 /* ------------------------------------------------------------------------ */
+/* Plain verdict line (SPEC §4.1.7 copy column; ADR-015)                     */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * The one-line what-to-do under the big state word. Verbatim from the
+ * §4.1.7 copy column — the verdict leads, the numerals demote to the
+ * secondary row. UNRELIABLE routes to the warning banner, which carries
+ * the specific reason and its remedy.
+ */
+export const VERDICT_COPY: Readonly<Record<Confidence, string>> = {
+  STRONG: 'Screw. Mark it.',
+  LIKELY: 'Probably a fastener.',
+  POSSIBLE: 'Something’s there. Sweep again to confirm.',
+  NOISE: 'Nothing found on this pass.',
+  UNRELIABLE: 'Conditions are bad — tap the warning for why.',
+};
+
+export function verdictFor(confidence: Confidence): string {
+  return VERDICT_COPY[confidence];
+}
+
+/* ------------------------------------------------------------------------ */
 /* Live feedback — state word, tone pitch, haptic trigger                    */
 /* ------------------------------------------------------------------------ */
 

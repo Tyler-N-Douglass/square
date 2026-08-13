@@ -16,14 +16,17 @@ export interface ToolModule { mount(el: HTMLElement, ctx: AppContext): Unmount; 
 
 export type RouteId = 'home' | 'scan' | 'level' | 'corner' | 'layout' | 'bevel' | 'calibrate' | 'log' | 'manual';
 
+// Tile subtitles are the plain task, verb first (ADR-015): each tile says
+// the job in homeowner language; the trade framing lives one level deeper
+// (tool screens, glossary).
 export const TOOL_ROUTES: ReadonlyArray<{ id: RouteId; title: string; line: string }> = [
-  { id: 'scan', title: 'SCAN', line: 'Find the screw line. Infer the stud.' },
-  { id: 'level', title: 'LEVEL', line: 'Level and plumb, on the actual object.' },
-  { id: 'corner', title: 'CORNER', line: 'True corner angles from a photo.' },
-  { id: 'layout', title: 'LAYOUT', line: 'N marks, exact equal spacing.' },
-  { id: 'bevel', title: 'BEVEL', line: 'Capture a cut angle. Set the saw.' },
-  { id: 'calibrate', title: 'CALIBRATE', line: 'Earn the accuracy claims.' },
-  { id: 'log', title: 'LOG', line: 'Every reading, with its uncertainty.' },
+  { id: 'scan', title: 'SCAN', line: 'Find a stud to screw into.' },
+  { id: 'level', title: 'LEVEL', line: 'Check it’s level or plumb.' },
+  { id: 'corner', title: 'CORNER', line: 'Measure a corner from a photo.' },
+  { id: 'layout', title: 'LAYOUT', line: 'Space pictures or shelves evenly.' },
+  { id: 'bevel', title: 'BEVEL', line: 'Copy an angle to your saw.' },
+  { id: 'calibrate', title: 'CALIBRATE', line: 'Tune the sensors. Takes two minutes, tightens every reading.' },
+  { id: 'log', title: 'LOG', line: 'Everything you’ve measured.' },
 ];
 
 const loaders: Record<RouteId, () => Promise<ToolModule>> = {
