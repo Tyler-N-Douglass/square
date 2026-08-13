@@ -117,9 +117,9 @@ describe('Tier PROXY — the §2.2 honesty line', () => {
     document.body.append(el);
     const unmount = mountScan(el, ctxFor('PROXY'), testDeps());
 
-    expect(el.textContent).toContain('coarser, more false positives');
+    expect(el.textContent).toContain('coarser, more false alarms');
     expect(el.textContent).toContain('Confidence caps at LIKELY');
-    expect(el.textContent).toContain('PROXY · deflection');
+    expect(el.textContent).toContain('BASIC SENSOR'); // ADR-015 plain badge; technical detail in title + honesty line
     // The live readout exists but shows no fabricated value.
     const value = el.querySelector('.num--measured .num__value');
     expect(value?.textContent).toBe('—');

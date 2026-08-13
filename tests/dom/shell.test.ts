@@ -25,9 +25,13 @@ function cap(over: Partial<CapabilityReport> = {}): CapabilityReport {
 
 describe('tierBadge', () => {
   it('states the tier honestly, including NONE', () => {
-    expect(tierBadge(cap({ magTier: 'FIELD' })).text).toBe('FIELD · µT');
-    expect(tierBadge(cap({ magTier: 'PROXY' })).text).toBe('PROXY · deflection');
-    expect(tierBadge(cap({ magTier: 'NONE' })).text).toBe('NO MAG · manual');
+    // ADR-015: plain words carry the badge; the technical tier lives in detail.
+    expect(tierBadge(cap({ magTier: 'FIELD' })).text).toBe('FULL SENSOR');
+    expect(tierBadge(cap({ magTier: 'FIELD' })).detail).toContain('FIELD');
+    expect(tierBadge(cap({ magTier: 'PROXY' })).text).toBe('BASIC SENSOR');
+    expect(tierBadge(cap({ magTier: 'PROXY' })).detail).toContain('heading deflection');
+    expect(tierBadge(cap({ magTier: 'NONE' })).text).toBe('NO WALL SENSOR');
+    expect(tierBadge(cap({ magTier: 'NONE' })).detail).toContain('manual');
   });
 });
 
@@ -40,7 +44,7 @@ describe('buildShell', () => {
     expect(outlet.tabIndex).toBe(-1);
     setTitle('LEVEL');
     expect(root.querySelector('.topbar__title')?.textContent).toBe('LEVEL');
-    expect(root.querySelector('.badge')?.textContent).toBe('NO MAG · manual');
+    expect(root.querySelector('.badge')?.textContent).toBe('NO WALL SENSOR');
   });
 
   it('glove toggle flips data-glove on the document and its own pressed state', () => {

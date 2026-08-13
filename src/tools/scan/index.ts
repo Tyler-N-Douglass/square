@@ -92,7 +92,7 @@ const defaultMemory = new FadingStore();
 /* ------------------------------------------------------------------------ */
 
 const PROXY_HONESTY_LINE =
-  'PROXY tier: heading deflection, not the raw field — coarser, more false positives. Confidence caps at LIKELY; STRONG needs the raw field sensor.';
+  'Basic sensor mode: heading deflection, not the raw field — coarser, more false alarms. Confidence caps at LIKELY; STRONG needs the raw field sensor.';
 
 const NONE_HONESTY_LINE =
   'No magnetometer path exists in this browser, so SCAN shows no reading — a number it did not measure has no place here. Manual mode below does the on-center arithmetic; the DEMOs replay real traces through the real pipeline.';
